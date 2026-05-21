@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">fish</string>
+    <string name="access_desc">开启自动点击权限</string>
+
+</resources>
