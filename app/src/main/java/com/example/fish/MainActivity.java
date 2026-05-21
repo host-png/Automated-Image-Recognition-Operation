@@ -7,6 +7,8 @@ import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -30,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_SCREEN_RECORD = 100;
     public static ImageHadle imageHadle;
     public static Context context;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
 
     @Override
@@ -53,14 +56,12 @@ public class MainActivity extends AppCompatActivity {
             if (!Settings.canDrawOverlays(this)) {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
                 startActivity(intent);
+                //checkAccessBackHome();
             }
         }
         //鲁平创权限
         requestScreenRecordPermission();
 
-        //创建悬浮窗
-        FloatWindow floatWindow = new FloatWindow(this);
-        floatWindow.show(); // 显示
 
 
 
@@ -102,12 +103,18 @@ public class MainActivity extends AppCompatActivity {
                 int height = metrics.heightPixels; // 真正高度
                 int dpi = metrics.densityDpi;
                 imageHadle = new ImageHadle(width, height, dpi);
+                // 延时弹出悬浮窗，等待实例赋值完成
+                new android.os.Handler().postDelayed(() -> {
+                    FloatWindow floatWindow = new FloatWindow(MainActivity.this);
+                    floatWindow.show();
+                }, 300);
                 //imageHadle.init(); // 启动截图
             } else {
                 Toast.makeText(this, "拒绝了权限", Toast.LENGTH_SHORT).show();
             }
         }
     }
+
 
 
     private boolean isAccessibilityEnabled() { //无障碍
@@ -126,11 +133,7 @@ public class MainActivity extends AppCompatActivity {
         super.onBackPressed();
         finish();
     }
-    public static boolean isLandscape(Context context) {
-        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        int rotation = wm.getDefaultDisplay().getRotation();
 
-        // 90度或270度，就是横屏
-        return rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270;
-    }
+
+
 }

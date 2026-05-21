@@ -159,59 +159,18 @@ public class FloatWindow {
         MainFunction.init();
         btn.setOnClickListener(v -> {
             if(buttonState) {
-
-                Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(815, 86, 785, 5);
-                /*if (areaBitmap == null) return -1;
-*/
-            /*    Mat mat = ImageHadle.binarizeToMat(areaBitmap, 190);
-                MainActivity.imageHadle.saveBitmap(areaBitmap);
-                MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));*/
-/*
-                Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(815, 86, 785, 5);
-
-                MainActivity.imageHadle.saveBitmap(areaBitmap);
-                MainActivity.imageHadle.saveBitmap(MainActivity.imageHadle.twoOinaryzationToBit(areaBitmap,160,180));
-        */        buttonState = false;
+                buttonState = false;
+                threadIsRunning = true;
                 btn.setText("关闭钓鱼");
-                //setTipsText(String.valueOf(ImageHadle.matchSimilarity(MainFunction.fishsate,ImageHadle.binarizeToMat(MainActivity.imageHadle.getAreaBitmap(700,65,60,55),140))));
-               /* new Thread(() -> {
-                    while (threadIsRunning) {
-                        try {
-                            // 实时获取坐标
-                            int curr = MainFunction.cursorPoint();
-                            int green = MainFunction.greenPostison();
-
-                            // 切主线程更新文字
-                            new android.os.Handler(appContext.getMainLooper()).post(() -> {
-                                setTipsText("光：" + curr + " 绿：" + green);
-                                updateMarkPoints(green, curr);
-                            });
-
-                            Thread.sleep(20);// 必须加，不然卡死
-
-                        } catch (Exception e) {
-                            break;
-                        }
-                    }
-                }).start();*/
                 new Thread(() -> {
                     try {
-                        // 截图（多线程安全）
-                        int mainState = 0;
-                        threadIsRunning = true;
+                        int mainState = 0;//状态重置
                         while (threadIsRunning) {
-                          //  setTipsText(String.valueOf(ImageHadle.matchSimilarity(MainFunction.fishsate,ImageHadle.binarizeToMat(MainActivity.imageHadle.getAreaBitmap(700,65,60,55),140))));
-                            //AutoClick.service.click(1200,540,0,50);
-
-
                             switch(mainState)
                             {
-
                                 case 0://状态一
-                                    //识别有无钩子然后点击
-                                    //Thread.sleep(100);
-                                       if(MainFunction.isHook())
-                                       {//2127,924,48,57)
+                                       if(MainFunction.isHook()) //识别有无钩子然后点击
+                                       {
                                            AutoClick.service.click(2151,952,0,50);
                                        }else if(MainFunction.isFishStae()){//没有识别有无鱼标
                                            mainState = 1;//有进入状态二
@@ -219,40 +178,23 @@ public class FloatWindow {
                                            MainFunction.addERROR = 0;
                                            MainFunction.lastError = 0;
                                        }
-                                       else {
-                                           AutoClick.service.click(1200,540,0,50);//z这样都没有也能防卡住
-
+                                       else {//俩种状态都没有  点击会点击的地方可以有更大的空间挂其他应用
+                                           AutoClick.service.click(2151,952,0,50);//z这样都没有也能防卡住
                                        }
                                        break;
                                 case 1://状态二
                                     if(MainFunction.isFishStae()){
-//                                        new android.os.Handler(appContext.getMainLooper()).post(() -> {
-//                                            setTipsText("宽度：" + MainFunction.weightOfGreen);
-//                                        });
-                                        //MainFunction.weithState = false;
-                                       /* int curr = MainFunction.cursorPoint();
-                                        int green = MainFunction.greenPostison();
-
-//                                        // 切主线程更新文字
-                                        new android.os.Handler(appContext.getMainLooper()).post(() -> {
-                                            setTipsText("光：" + curr + " 绿：" + green);
-                                        });*/
-                                       // Thread.sleep(150);
                                         MainFunction.contralCurr();
                                     }
                                     else
                                     {//识别不到就点击屏幕
-
-                                        AutoClick.service.click(1200,540,0,50);
+                                        AutoClick.service.click(2151,952,0,50);
                                         if (MainFunction.isHook()) {
                                             MainFunction.weithState = true;
                                             mainState = 0;
                                         }
-
                                     }
-
                                     break;
-
                             }
 
                         }

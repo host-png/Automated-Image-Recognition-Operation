@@ -18,19 +18,29 @@ public class  MainFunction {
 
     public static boolean isHook()//钩子判断
     {
-      if( ImageHadle.matchSimilarity(hook,ImageHadle.binarizeToMat(MainActivity.imageHadle.getAreaBitmap(2127,924,48,57),200))
-              > 0.65) {
+        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(2127,924,48,57);
+        Mat mat = ImageHadle.binarizeToMat(bitmap,200);
+      if( ImageHadle.matchSimilarity(hook,mat) > 0.65) {
+          bitmap.recycle();
+          mat.release();
           return true;
       }else{
+          bitmap.recycle();
+          mat.release();
           return false;
       }
     }
 
     public static boolean isFishStae(){//鱼判断
-        if(ImageHadle.matchSimilarity(fishsate,ImageHadle.binarizeToMat(MainActivity.imageHadle.getAreaBitmap(700,65,60,55),140))
-                > 0.65){
+        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(700,65,60,55);
+        Mat mat = ImageHadle.binarizeToMat(bitmap,140);
+        if(ImageHadle.matchSimilarity(fishsate,mat) > 0.65){
+            mat.release();
+            bitmap.recycle();
             return true;
         }else{
+            bitmap.recycle();
+            mat.release();
             return false;
         }
     }
@@ -61,7 +71,7 @@ public class  MainFunction {
     public static boolean weithState = true;
     public static int weightOfGreen;
 
-    public static int isGreen(Mat mat,int x,int y,int direction) {
+    public static int isGreen(Mat mat,int x,int y,int direction) {//这里的mat不用释放
         int i = 1;//在王后面便利六格防止光标误判
         for (;i<6;i++) {
             if (ImageHadle.getPointColorFromMat(mat, x+(i*direction), y) == 0xFFFFFFFF) {
@@ -174,7 +184,6 @@ public class  MainFunction {
     public static void contralCurr() {
         int currX = cursorPoint();
         int greenX = greenPostison();
-
         if(-5>(currX-greenX)||(currX-greenX)>5){//控制在10个像素以内
             currMove(greenX-currX);
         }

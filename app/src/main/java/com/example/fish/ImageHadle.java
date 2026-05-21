@@ -35,7 +35,7 @@ public class ImageHadle {
 
     private ImageReader mImageReader;//图像接受对象
     private boolean isInitialized = false;
-    public ImageHadle(int width, int height, int dpi) {//横屏交换
+    public ImageHadle(int width, int height, int dpi) {//横屏交换 因为游戏是横平，后续不好改
         this.width = height;
         this.height = width;
         this.dpi = dpi;
@@ -103,9 +103,7 @@ public class ImageHadle {
         return correct;
     }
 
-    public void release() {//关闭的时候释放
-        if (mImageReader != null) mImageReader.close();
-    }
+
 
 
     /*
