@@ -171,7 +171,7 @@ public class FloatWindow {
                                 case 0://状态一
                                        if(MainFunction.isHook()) //识别有无钩子然后点击
                                        {
-                                           AutoClick.service.click(2151,952,0,50);
+                                           clickStablePostion();
                                        }else if(MainFunction.isFishStae()){//没有识别有无鱼标
                                            mainState = 1;//有进入状态二
 
@@ -179,7 +179,7 @@ public class FloatWindow {
                                            MainFunction.lastError = 0;
                                        }
                                        else {//俩种状态都没有  点击会点击的地方可以有更大的空间挂其他应用
-                                           AutoClick.service.click(2151,952,0,50);//z这样都没有也能防卡住
+                                           clickStablePostion();
                                        }
                                        break;
                                 case 1://状态二
@@ -188,7 +188,7 @@ public class FloatWindow {
                                     }
                                     else
                                     {//识别不到就点击屏幕
-                                        AutoClick.service.click(2151,952,0,50);
+                                        clickStablePostion();
                                         if (MainFunction.isHook()) {
                                             MainFunction.weithState = true;
                                             mainState = 0;
@@ -232,6 +232,11 @@ public class FloatWindow {
             return false;
         });
     }
+    public void clickStablePostion() {//2151   952
+        AutoClick.service.click((2151*MainActivity.height/2408),(952*MainActivity.width/1080),0,50);//z这样都没有也能防卡住
+
+    }
+
     public void show() {//显示悬浮创
         if (mFloatView.getParent() == null) {
             mWindowManager.addView(mFloatView, mParams);

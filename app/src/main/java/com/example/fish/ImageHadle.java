@@ -22,6 +22,7 @@ import org.opencv.core.Mat;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
@@ -403,4 +404,19 @@ public class ImageHadle {
         }
         return (float) mmr.maxVal;
     }
+    /**
+     * OpenCV Mat 等比例缩放
+     * @param src 原图Mat
+     * @param targetW 目标宽度
+     * @param targetH 目标高度
+     * @return 缩放后新Mat
+     */
+    public static Mat scaleMat(Mat src, int targetW, int targetH) {
+        Mat dst = new Mat();
+        Imgproc.resize(src, dst, new Size(targetW, targetH));
+        src.release(); // 释放原图内存
+        return dst;
+    }
+
+
 }

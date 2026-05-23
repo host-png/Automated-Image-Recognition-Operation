@@ -11,14 +11,24 @@ public class  MainFunction {
 
     //钩子识别
     // Mat hookTemplate = ImageHadle.loadRawTemplate(context, R.raw.hook);
+
+    public static int xToTrsf(int x)
+    {
+        return x*MainActivity.height/2408;
+    }
+    public static int yToTrsf(int y){
+        return y*MainActivity.width/1080;
+    }
     public static void init(){//初始化
         hook = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.hook);
         fishsate =  ImageHadle.loadRawTemplate(MainActivity.context,R.raw.fishstate);
+      /*  hook = ImageHadle.scaleMat(hook,xToTrsf(48),yToTrsf(57));
+        fishsate=ImageHadle.scaleMat(fishsate,xToTrsf(60),yToTrsf(55));*/
     }
 
     public static boolean isHook()//钩子判断
     {
-        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(2127,924,48,57);
+        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(2127) , yToTrsf(924),xToTrsf(48),yToTrsf(57));
         Mat mat = ImageHadle.binarizeToMat(bitmap,200);
       if( ImageHadle.matchSimilarity(hook,mat) > 0.65) {
           bitmap.recycle();
@@ -31,8 +41,9 @@ public class  MainFunction {
       }
     }
 
+
     public static boolean isFishStae(){//鱼判断
-        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(700,65,60,55);
+        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(700),yToTrsf(65),xToTrsf(60),yToTrsf(55));
         Mat mat = ImageHadle.binarizeToMat(bitmap,140);
         if(ImageHadle.matchSimilarity(fishsate,mat) > 0.65){
             mat.release();
@@ -49,7 +60,7 @@ public class  MainFunction {
     // x是相对坐标还得加上815
     public static int cursorPoint() {
         int x = 0;
-        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(815, 86, 785, 5);
+        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5));
         if (areaBitmap == null) return -1;
 
         Mat mat = ImageHadle.binarizeToMat(areaBitmap, 190);
@@ -58,14 +69,14 @@ public class  MainFunction {
             return -1;
         }
 
-        while (x <= 785) {
-            if (ImageHadle.getPointColorFromMat(mat, x, 3) == 0xFFFFFFFF) break;
+        while (x <= xToTrsf(785)) {
+            if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF) break;
             x++;
         }
 
         mat.release();
         areaBitmap.recycle();
-        return x + 815;//返回光标x
+        return x + xToTrsf(815);//返回光标x
     }
 
     public static boolean weithState = true;
@@ -86,7 +97,7 @@ public class  MainFunction {
 
     public static int greenPostison() {
         int x = 0;
-      Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(815, 86, 785, 5);
+      Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5));
         if (areaBitmap == null) return -1;
 
         Mat mat = ImageHadle.twoBinarizeToMat(areaBitmap, 160,180);
@@ -97,10 +108,10 @@ public class  MainFunction {
         if(weithState)
         {
 
-            while (x <= 785) {//左边网友变
-                if (ImageHadle.getPointColorFromMat(mat, x, 3) == 0xFFFFFFFF)
+            while (x <= xToTrsf(785)) {//左边网友变
+                if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF)
                 {
-                    int i =isGreen(mat,x,3,1);
+                    int i =isGreen(mat,xToTrsf(x), yToTrsf(3),1);
                   if(i == 6)
                   {
                       break;
@@ -112,10 +123,10 @@ public class  MainFunction {
                 x++;
             }
             int m = x;
-            x = 785;
+            x = xToTrsf(785);
             while (x > 0) {//右边王左边
-                if (ImageHadle.getPointColorFromMat(mat, x, 3) == 0xFFFFFFFF){
-                    int i =isGreen(mat,x,3,-1);
+                if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF){
+                    int i =isGreen(mat,xToTrsf(x), yToTrsf(3),-1);
                     if(i == 6)
                     {
                         break;
@@ -131,12 +142,12 @@ public class  MainFunction {
 
             mat.release();
             areaBitmap.recycle();
-            return (weightOfGreen/2) + m + 815;
+            return (weightOfGreen/2) + m + xToTrsf(815);
         }
 
-        while (x <= 785) {
-            if (ImageHadle.getPointColorFromMat(mat, x, 3) == 0xFFFFFFFF){
-                int i =isGreen(mat,x,3,1);
+        while (x <= xToTrsf(785)) {
+            if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF){
+                int i =isGreen(mat,xToTrsf(x), yToTrsf(3),1);
                 if(i == 6)
                 {
                     break;
@@ -150,18 +161,23 @@ public class  MainFunction {
 
         mat.release();
         areaBitmap.recycle();
-        return (weightOfGreen/2) + x + 815;//返回率条中心坐标
+        return (weightOfGreen/2) + x + xToTrsf(815);//返回率条中心坐标
     }
 
     public static int addERROR = 0;
     public static int lastError = 0;
-    public static float speep = 0.3457f;
+    // 修正：改成静态代码块初始化
+    public static float speep;
+    static {
+        speep =  (float)xToTrsf(771)/2230;//像素/时间   单位像素/ms
+    }
+
     public static void currMove(int move)//输入移动移动方向进行移动s
     {
         if(move>0)//光标右移
         {
 
-            AutoClick.service.click(2060, 830, 0, (int)((float)move/speep));
+            AutoClick.service.click(xToTrsf(2060), yToTrsf(830), 0, (int)((float)move/speep));
            /* addERROR += move;
             int AT = (int)((move*1.8) + addERROR * 0.01 + (move-lastError) * 0.2);
             AutoClick.service.click(2060, 830, 0, AT);
@@ -169,7 +185,7 @@ public class  MainFunction {
         }
         else {//光标左移
             move = -move;
-            AutoClick.service.click(380,830, 0, (int) ((float) move / speep));
+            AutoClick.service.click(xToTrsf(380),yToTrsf(830), 0, (int) ((float) move / speep));
 
           /*  move = -move;
             addERROR += move;

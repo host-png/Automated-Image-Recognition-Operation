@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     public static Context context;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
+    public static int width,height,dpi;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,9 +101,11 @@ public class MainActivity extends AppCompatActivity {
                 DisplayMetrics metrics = new DisplayMetrics();
                 WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
                 wm.getDefaultDisplay().getRealMetrics(metrics); // ✅真实全屏分辨率
-                int width = metrics.widthPixels;   // 真正宽度
-                int height = metrics.heightPixels; // 真正高度
-                int dpi = metrics.densityDpi;
+                width = metrics.widthPixels;   // 真正宽度1080
+                height = metrics.heightPixels; // 真正高度2408
+                dpi = metrics.densityDpi;//480
+               // Toast.makeText(this, String.valueOf(width)+"    " +String.valueOf(height) +"  " +String.valueOf(dpi) , Toast.LENGTH_LONG).show();
+
                 imageHadle = new ImageHadle(width, height, dpi);
                 // 延时弹出悬浮窗，等待实例赋值完成
                 new android.os.Handler().postDelayed(() -> {
