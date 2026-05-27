@@ -1,8 +1,11 @@
 package com.example.fish;
 
+import static java.lang.Thread.sleep;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.os.Build;
 import android.util.Log;
 import android.view.Gravity;
@@ -14,6 +17,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import org.opencv.core.Mat;
+
 
 import java.io.File;
 
@@ -39,13 +43,14 @@ public class FloatWindow {
     private View mTipsView;
     private WindowManager.LayoutParams mTipsParams;
     private android.widget.TextView mTipsText;
-    private boolean threadIsRunning = true;
-
+    private boolean threadIsRunning = true,  threadIsRunning1 = true;;
+    private static final String TAG = "FishDebug";
 
 
     // ------------------- 实时绘制两个标记点 -------------------
     private android.widget.TextView markGreen, markCursor;
     private WindowManager.LayoutParams paramsGreen, paramsCursor;
+
 
     private void createMarkPoints() {
         // 绿色条中心标记（红色）
@@ -106,6 +111,7 @@ public class FloatWindow {
         mWindowManager.updateViewLayout(markCursor, paramsCursor);
     }
 
+
     private void createFloatTips() {
         mTipsText = new android.widget.TextView(appContext);
         mTipsText.setText("未开始");
@@ -128,11 +134,29 @@ public class FloatWindow {
 
         mWindowManager.addView(mTipsText, mTipsParams);
     }
-    public void setTipsText(String text) {
-        if (mTipsText != null) {
-            mTipsText.setText(text);
+
+
+    public int getGreenSizPo()
+    {
+        if(ImageHadle.width>1920)
+        {
+            return MainFunction.sizdToTrsf(21);//2340 2400 2408
+        } else if (ImageHadle.width>720) {
+            return MainFunction.sizdToTrsf(23);//1920
+        }
+        else {
+            return MainFunction.sizdToTrsf(20)+2;//1280
         }
     }
+
+    public void setTipsText(String text) {
+        if (mTipsText == null || text == null) {
+            return;
+        }
+        // 抛到主线程更新UI
+        mTipsText.post(() -> mTipsText.setText(text));
+    }
+    public static boolean xmlState = false;
     private void initFloatWindow(Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         mFloatView = LayoutInflater.from(context).inflate(R.layout.float_window, null);
@@ -157,59 +181,162 @@ public class FloatWindow {
         // 按钮点击
         Button btn = mFloatView.findViewById(R.id.float_btn);
         MainFunction.init();
+
+        //检测文件内容不空读取数据
+
         btn.setOnClickListener(v -> {
+            Log.d(TAG, "按钮被点击，当前按钮状态：" + buttonState);
             if(buttonState) {
                 buttonState = false;
                 threadIsRunning = true;
+               threadIsRunning1 = true;
                 btn.setText("关闭钓鱼");
-                new Thread(() -> {
-                    try {
-                        int mainState = 0;//状态重置
-                        while (threadIsRunning) {
-                            switch(mainState)
-                            {
-                                case 0://状态一
-                                       if(MainFunction.isHook()) //识别有无钩子然后点击
-                                       {
-                                           clickStablePostion();
-                                       }else if(MainFunction.isFishStae()){//没有识别有无鱼标
-                                           mainState = 1;//有进入状态二
+                setTipsText("运行中");
+                Log.i(TAG, "启动钓鱼运行线程");
 
-                                           MainFunction.addERROR = 0;
-                                           MainFunction.lastError = 0;
-                                       }
-                                       else {//俩种状态都没有  点击会点击的地方可以有更大的空间挂其他应用
-                                           clickStablePostion();
-                                       }
-                                       break;
-                                case 1://状态二
-                                    if(MainFunction.isFishStae()){
-                                        MainFunction.contralCurr();
-                                    }
-                                    else
-                                    {//识别不到就点击屏幕
+
+                if(StrogeXml.readTwoPoint(context)[0][0] == 0) {
+                    xmlState = true;
+                }
+                else {
+                    int point[][] = StrogeXml.readTwoPoint(context);
+                    MainFunction.hookPoint = new Point(point[0][0],point[0][1]);
+                    MainFunction.fishStaPoint = new Point(point[1][0],point[1][1]);
+                    MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
+                            MainFunction.fishStaPoint.y + getGreenSizPo());
+                    xmlState =false;
+
+                }
+              /*  if(MainFunction.hookPoint == null)
+                {
+                    MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                            57*ImageHadle.height/1080*2,200);
+                    MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
+                            new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
+                            60*ImageHadle.height/1080*2,140);
+                    MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
+                            MainFunction.fishStaPoint.y + getGreenSizPo());
+                    Log.v(TAG, "fishstaok");
+                }
+                if (MainFunction.isFishStae()) {
+                    Log.d(TAG, String.valueOf(MainFunction.greenPostison()));
+
+                    //clickStablePostion();
+                }
+                else{
+                    Log.v(TAG, "污垢子");
+                }*/
+              //  Log.i(TAG, "X坐标"+ (int)((0.88125*ImageHadle.width) +10.5));
+
+             //   Point point = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+              //          57*ImageHadle.height/1080*2,200);
+
+           /*     Point pointFish = ImageHadle.uiLineSearch(MainFunction.fishsate,
+                        new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
+                        60*ImageHadle.height/1080*2,140);
+
+                if(  pointFish!=null ){
+                 //  Log.i(TAG, "X坐标"+ point.x +"Y坐标"+ point.y);
+                    Log.i(TAG, "fishX坐标"+ pointFish.x +"Y坐标"+ pointFish.y);
+
+               }
+               else {
+                    Log.i(TAG, "搜索失败");
+
+                }*/
+
+
+                    new Thread(() -> {
+                        try {
+                            if(xmlState) {
+                                setTipsText("首次图标坐标扫描(注意不要乱动屏幕)");
+                                sleep(4000);
+                                setTipsText("扫描鱼钩");
+                                while (MainFunction.hookPoint == null)
+                                {
+                                    MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                                            57*ImageHadle.height/1080*2,200);
+                                }
+
+                                    boolean stateWithserch = true;
+                                    setTipsText("扫到鱼钩，开始点击");
+                                    while(stateWithserch)
+                                    {
                                         clickStablePostion();
-                                        if (MainFunction.isHook()) {
-                                            MainFunction.weithState = true;
-                                            mainState = 0;
+                                        if(MainFunction.isHook() == false){
+                                            setTipsText("扫描鱼标");
+                                            MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
+                                                    new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
+                                                    60*ImageHadle.height/1080*2,140);
+                                            if(MainFunction.fishStaPoint != null)
+                                            {
+                                                MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
+                                                        MainFunction.fishStaPoint.y + getGreenSizPo());
+                                                StrogeXml.writeTwoPoint(context,MainFunction.hookPoint.x,MainFunction.hookPoint.y,
+                                                                        MainFunction.fishStaPoint.x,MainFunction.fishStaPoint.y);
+                                                setTipsText("ok所有图标均已扫完");
+                                                xmlState = false;
+                                                stateWithserch = false;
+                                                break;
+                                            }
                                         }
                                     }
-                                    break;
-                            }
 
+                            }
+                            setTipsText("正常运行");
+                            int mainState = 0;
+                            while (threadIsRunning) {
+                                switch(mainState)
+                                {
+                                    case 0:
+
+                                        if(MainFunction.isHook()) {
+                                            Log.d(TAG, "检测到钩子，执行点击");
+                                            clickStablePostion();
+                                        }else if(MainFunction.isFishStae()){
+                                          /*  MainFunction.addERROR = 0;
+                                            MainFunction.lastError = 0;
+                                      */      mainState = 1;
+
+                                        }else {
+
+                                            clickStablePostion();
+                                        }
+                                        break;
+                                    case 1:
+
+                                        if(MainFunction.isFishStae()){
+
+                                            MainFunction.contralCurr();
+                                        }
+                                        else {
+
+                                            clickStablePostion();
+                                            if (MainFunction.isHook()) {
+                                                MainFunction.weithState = true;
+                                                mainState = 0;
+
+                                            }
+                                        }
+                                        break;
+                                }
+                            }
+                            Log.i(TAG, "钓鱼线程正常退出循环");
+                        } catch (Exception e) {
+                            Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }).start(); // 启动线程
+                    }).start();
+
+
             }
             else {
+                threadIsRunning1  = false;
                 buttonState = true;
                 threadIsRunning = false;
                 btn.setText("开始钓鱼");
+                setTipsText("已暂停");
+                Log.i(TAG, "停止钓鱼运行，线程标记关闭");
             }
-
-
         });
         //拖动
         btn.setOnTouchListener((v, event) -> {
@@ -233,7 +360,7 @@ public class FloatWindow {
         });
     }
     public void clickStablePostion() {//2151   952
-        AutoClick.service.click((2151*MainActivity.height/2408),(952*MainActivity.width/1080),0,50);//z这样都没有也能防卡住
+        AutoClick.service.click(MainFunction.hookPoint.x,MainFunction.hookPoint.y,0,50);//z这样都没有也能防卡住
 
     }
 

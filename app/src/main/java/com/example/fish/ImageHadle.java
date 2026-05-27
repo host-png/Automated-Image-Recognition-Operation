@@ -21,6 +21,7 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 
 import org.opencv.core.Mat;
+
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -30,9 +31,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-
+import android.graphics.Point;
 public class ImageHadle {
-    private int width, height, dpi;//屏幕信息
+    public static int width, height, dpi;//屏幕信息
 
     private ImageReader mImageReader;//图像接受对象
     private boolean isInitialized = false;
@@ -63,7 +64,7 @@ public class ImageHadle {
 
 
         if (mImageReader == null) {// 创建图像接收器
-            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1);
+            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 6);
         }
 
         ScreenRecordService.mMediaProjection.createVirtualDisplay( // 创建虚拟屏幕（画面开始流入，但你不读就不消耗性能）
@@ -76,16 +77,36 @@ public class ImageHadle {
         isInitialized = true; // 标记已初始化
     }
 
-    public Bitmap getScreenBitmap() { //获取一帧的图片信息
-        if (mImageReader == null) return null;
+    public Bitmap getScreenBitmap() {
+        if (mImageReader == null) {
+            return null;
+        }
 
-        Image image = mImageReader.acquireLatestImage();
-        if (image == null) return null;
-
-        Bitmap bitmap = imageToBitmap(image);
-        image.close();
+        Image image = null;
+        Bitmap bitmap = null;
+        try {
+            // 串行取帧，不丢帧、不乱缓冲区状态
+            image = mImageReader.acquireNextImage();
+            if (image == null) {
+                return null;
+            }
+            bitmap = imageToBitmap(image);
+        } catch (IllegalStateException e) {
+            // 捕获缓冲区锁定/重复关闭异常
+            Log.w("ImageHadle", "缓冲区状态异常，跳过当前帧");
+            return null;
+        } catch (Exception e) {
+            Log.e("ImageHadle", "截图转换异常", e);
+            return null;
+        } finally {
+            // 无论正常/异常，Image 必定关闭，杜绝泄漏
+            if (image != null) {
+                image.close();
+            }
+        }
         return bitmap;
     }
+
     // 图片转Bitmap（固定工具方法）
     private Bitmap imageToBitmap(Image image) {
         Image.Plane plane = image.getPlanes()[0];
@@ -387,7 +408,7 @@ public class ImageHadle {
      * @param template 模板 Mat（必须是灰度图，尺寸更小）
      * @return 相似度 0 ~ 1，越接近1越像
      */
-    public static float matchSimilarity(Mat source, Mat template) {
+    public static float matchSimilarity(Mat source, Mat template) {//截图  模板 别高反了
         Mat result = new Mat();
 
         // 执行模板匹配（最准的算法）
@@ -404,7 +425,7 @@ public class ImageHadle {
         }
         return (float) mmr.maxVal;
     }
-    /**
+    /*
      * OpenCV Mat 等比例缩放
      * @param src 原图Mat
      * @param targetW 目标宽度
@@ -417,6 +438,60 @@ public class ImageHadle {
         src.release(); // 释放原图内存
         return dst;
     }
+
+
+
+    //传入比对图片(处理好的) 中心位置 扫描范围 灰度
+    //输出比对图标的左上角坐标
+    public static Point uiLineSearch(Mat mat,Point cenPos,int scope,int thresh){
+        //Mat cutImage = bitmapToMat(MainActivity.imageHadle.getAreaBitmap(cenPos.x-(scope/2),cenPos.y-(scope/2),scope,scope));
+        //县固定列扫描行数
+        Log.d("cc", "mat宽度cols="+mat.cols()+" 高度rows="+mat.rows());
+        Log.d("MatSizeCheck", "mat宽度cols=");
+
+        Bitmap allScreen = MainActivity.imageHadle.getScreenBitmap();
+
+        Mat movemat;
+        Bitmap areaBmp;
+        try{
+        for (int co = 0;co<scope-mat.cols();co++)//列
+        {
+            for (int ro = 0;ro<scope-mat.rows();ro++)//行
+            {
+
+                areaBmp = Bitmap.createBitmap(allScreen, cenPos.x-(scope/2) + co,cenPos.y-(scope/2) + ro
+                        , mat.cols(),mat.rows());
+                movemat =  binarizeToMat(areaBmp,thresh);
+                        //MainActivity.imageHadle.getAreaBitmap();
+
+
+
+                if( matchSimilarity(movemat,mat) >0.6)
+               {
+                   Point point = new Point(cenPos.x-(scope/2)+co,cenPos.y-(scope/2) +ro);
+                   return point;
+               }
+                if (areaBmp != null) {
+                    areaBmp.recycle();
+                    areaBmp = null;
+                }
+                if (movemat != null) {
+                    movemat.release();
+                    movemat = null;
+                }
+
+            }
+        }
+    } finally {
+        // 最终释放整屏图
+        if (allScreen != null) {
+            allScreen.recycle();
+        }
+    }
+        return null;
+
+    }
+
 
 
 }

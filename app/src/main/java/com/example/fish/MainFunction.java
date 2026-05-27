@@ -1,66 +1,88 @@
 package com.example.fish;
 
 import android.graphics.Bitmap;
+import android.graphics.Point;
+import android.provider.ContactsContract;
 import android.util.Log;
 
 import org.opencv.core.Mat;
-import org.opencv.core.Point;
 
 public class  MainFunction {
     public static Mat hook, fishsate;
 
+    public static Point hookPoint = null,fishStaPoint = null,cGLinepoint = null;
     //钩子识别
     // Mat hookTemplate = ImageHadle.loadRawTemplate(context, R.raw.hook);
 
-    public static int xToTrsf(int x)
+    public static int sizdToTrsf(int x)//输入旧尺寸输出当前分辨率下的新尺寸
     {
-        return x*MainActivity.height/2408;
+        return x*MainActivity.width/1080;
     }
-    public static int yToTrsf(int y){
-        return y*MainActivity.width/1080;
+    public static int sWToTrsf(int x) {
+    return  x*MainActivity.height/2408;
     }
+
+
     public static void init(){//初始化
         hook = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.hook);
         fishsate =  ImageHadle.loadRawTemplate(MainActivity.context,R.raw.fishstate);
-      /*  hook = ImageHadle.scaleMat(hook,xToTrsf(48),yToTrsf(57));
-        fishsate=ImageHadle.scaleMat(fishsate,xToTrsf(60),yToTrsf(55));*/
+        hook = ImageHadle.scaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));//尺寸之更宽度有关
+        fishsate = ImageHadle.scaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
+      //  fishsate=ImageHadle.scaleMat(fishsate,xToTrsf(60),yToTrsf(55));
     }
 
-    public static boolean isHook()//钩子判断
+    public static void getAllUiPointa() {//改方法只能够在已经获取到Ui的相对坐标下才能够使用
+        //读取文件赋值
+
+    }
+
+
+    public static boolean isHook()//钩子判断 必须得有point对象
     {
-        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(2127) , yToTrsf(924),xToTrsf(48),yToTrsf(57));
-        Mat mat = ImageHadle.binarizeToMat(bitmap,200);
-      if( ImageHadle.matchSimilarity(hook,mat) > 0.65) {
-          bitmap.recycle();
-          mat.release();
-          return true;
-      }else{
-          bitmap.recycle();
-          mat.release();
-          return false;
-      }
+        if(hookPoint !=null){
+            Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(hookPoint.x ,hookPoint.y,sizdToTrsf(48),sizdToTrsf(57));
+            Mat mat = ImageHadle.binarizeToMat(bitmap,200);
+            if( ImageHadle.matchSimilarity(mat,hook) > 0.5) {
+               // Log.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(hook,mat)));
+                bitmap.recycle();
+                mat.release();
+                return true;
+            }else{
+                bitmap.recycle();
+                mat.release();
+                return false;
+            }
+        }
+     return  false;
     }
 
 
     public static boolean isFishStae(){//鱼判断
-        Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(700),yToTrsf(65),xToTrsf(60),yToTrsf(55));
-        Mat mat = ImageHadle.binarizeToMat(bitmap,140);
-        if(ImageHadle.matchSimilarity(fishsate,mat) > 0.65){
-            mat.release();
-            bitmap.recycle();
-            return true;
-        }else{
-            bitmap.recycle();
-            mat.release();
-            return false;
-        }
+     if(fishStaPoint != null)
+     {
+         Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(fishStaPoint.x,fishStaPoint.y,sizdToTrsf(60),sizdToTrsf(55));
+         Mat mat = ImageHadle.binarizeToMat(bitmap,140);
+         if(ImageHadle.matchSimilarity(mat,fishsate) > 0.5){
+             //og.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(mat,fishsate)));
+             mat.release();
+             bitmap.recycle();
+             return true;
+         }else{
+             bitmap.recycle();
+             mat.release();
+             return false;
+         }
+     }
+     return false;
     }
 
     //获取黄条的坐标只返回x y是已知的
     // x是相对坐标还得加上815
+
+    //cGLinepoint.x = fishSta.x+sWToTrsf(119)
     public static int cursorPoint() {
         int x = 0;
-        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5));
+        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, sWToTrsf(785), sizdToTrsf(5));
         if (areaBitmap == null) return -1;
 
         Mat mat = ImageHadle.binarizeToMat(areaBitmap, 190);
@@ -69,14 +91,14 @@ public class  MainFunction {
             return -1;
         }
 
-        while (x <= xToTrsf(785)) {
-            if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF) break;
+        while (x <= sWToTrsf(785)) {
+            if (ImageHadle.getPointColorFromMat(mat, x, (int)((sizdToTrsf(5)+1)/2)) == 0xFFFFFFFF) break;
             x++;
         }
 
         mat.release();
         areaBitmap.recycle();
-        return x + xToTrsf(815);//返回光标x
+        return x + cGLinepoint.x;//返回光标x
     }
 
     public static boolean weithState = true;
@@ -97,21 +119,25 @@ public class  MainFunction {
 
     public static int greenPostison() {
         int x = 0;
-      Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5));
+        //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
+      Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, sWToTrsf(785), sizdToTrsf(5));
         if (areaBitmap == null) return -1;
 
         Mat mat = ImageHadle.twoBinarizeToMat(areaBitmap, 160,180);
-        if (mat == null || mat.empty()) {
+     /*   MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+        Bitmap areaBitmap1 = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, sWToTrsf(785), (sizdToTrsf(5)+1)/2);
+        MainActivity.imageHadle.saveBitmap(areaBitmap1);
+       */ if (mat == null || mat.empty()) {
             areaBitmap.recycle();
             return -1;
         }
         if(weithState)
         {
 
-            while (x <= xToTrsf(785)) {//左边网友变
-                if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF)
+            while (x <= sWToTrsf(785)) {//左边网友变
+                if (ImageHadle.getPointColorFromMat(mat, x, (int)((sizdToTrsf(5)+1)/2)) == 0xFFFFFFFF)
                 {
-                    int i =isGreen(mat,xToTrsf(x), yToTrsf(3),1);
+                    int i =isGreen(mat,x,  (int)((sizdToTrsf(5)+1)/2),1);
                   if(i == 6)
                   {
                       break;
@@ -123,10 +149,10 @@ public class  MainFunction {
                 x++;
             }
             int m = x;
-            x = xToTrsf(785);
+            x = sWToTrsf(785);
             while (x > 0) {//右边王左边
-                if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF){
-                    int i =isGreen(mat,xToTrsf(x), yToTrsf(3),-1);
+                if (ImageHadle.getPointColorFromMat(mat, x, (int)((sizdToTrsf(5)+1)/2)) == 0xFFFFFFFF){
+                    int i =isGreen(mat,x, (int)((sizdToTrsf(5)+1)/2),-1);
                     if(i == 6)
                     {
                         break;
@@ -142,12 +168,12 @@ public class  MainFunction {
 
             mat.release();
             areaBitmap.recycle();
-            return (weightOfGreen/2) + m + xToTrsf(815);
+            return (weightOfGreen/2) + m + cGLinepoint.x;
         }
 
-        while (x <= xToTrsf(785)) {
-            if (ImageHadle.getPointColorFromMat(mat, xToTrsf(x), yToTrsf(3)) == 0xFFFFFFFF){
-                int i =isGreen(mat,xToTrsf(x), yToTrsf(3),1);
+        while (x <= sWToTrsf(785)) {
+            if (ImageHadle.getPointColorFromMat(mat, x, (int)((sizdToTrsf(5)+1)/2)) == 0xFFFFFFFF){
+                int i =isGreen(mat, x, (int)((sizdToTrsf(5)+1)/2),1);
                 if(i == 6)
                 {
                     break;
@@ -161,7 +187,7 @@ public class  MainFunction {
 
         mat.release();
         areaBitmap.recycle();
-        return (weightOfGreen/2) + x + xToTrsf(815);//返回率条中心坐标
+        return (weightOfGreen/2) + x + cGLinepoint.x;//返回率条中心坐标
     }
 
     public static int addERROR = 0;
@@ -169,7 +195,7 @@ public class  MainFunction {
     // 修正：改成静态代码块初始化
     public static float speep;
     static {
-        speep =  (float)xToTrsf(771)/2230;//像素/时间   单位像素/ms
+        speep =  (float)sWToTrsf(771)/2230;//xToTrsf像素/时间   单位像素/ms
     }
 
     public static void currMove(int move)//输入移动移动方向进行移动s
@@ -177,7 +203,7 @@ public class  MainFunction {
         if(move>0)//光标右移
         {
 
-            AutoClick.service.click(xToTrsf(2060), yToTrsf(830), 0, (int)((float)move/speep));
+            AutoClick.service.click(sWToTrsf(2060), sizdToTrsf(830), 0, (int)((float)move/speep));
            /* addERROR += move;
             int AT = (int)((move*1.8) + addERROR * 0.01 + (move-lastError) * 0.2);
             AutoClick.service.click(2060, 830, 0, AT);
@@ -185,7 +211,7 @@ public class  MainFunction {
         }
         else {//光标左移
             move = -move;
-            AutoClick.service.click(xToTrsf(380),yToTrsf(830), 0, (int) ((float) move / speep));
+            AutoClick.service.click(sWToTrsf(380),sizdToTrsf(830), 0, (int) ((float) move / speep));
 
           /*  move = -move;
             addERROR += move;
