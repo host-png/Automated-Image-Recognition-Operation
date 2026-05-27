@@ -115,7 +115,9 @@ public class FloatWindow {
     private void createFloatTips() {
         mTipsText = new android.widget.TextView(appContext);
         mTipsText.setText("未开始");
-        mTipsText.setTextSize(14);
+        int textSize = (int)(ImageHadle.height*0.013f);
+        mTipsText.setTextSize(textSize);
+       // mTipsText.setTextSize(14);
         mTipsText.setTextColor(0xFFFF0000);
         mTipsText.setBackgroundColor(0x88000000);
         mTipsText.setPadding(10, 5, 10, 5);
@@ -129,8 +131,8 @@ public class FloatWindow {
         mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         mTipsParams.format = PixelFormat.TRANSLUCENT;
         mTipsParams.gravity = Gravity.TOP | Gravity.LEFT;
-        mTipsParams.x = 100;
-        mTipsParams.y = 100;
+        mTipsParams.x = 0;
+        mTipsParams.y = ImageHadle.height/2;
 
         mWindowManager.addView(mTipsText, mTipsParams);
     }
@@ -250,8 +252,8 @@ public class FloatWindow {
                         try {
                             if(xmlState) {
                                 setTipsText("首次图标坐标扫描(注意不要乱动屏幕)");
-                                sleep(4000);
-                                setTipsText("扫描鱼钩");
+                                sleep(2000);
+                                setTipsText("扫描钩子(耐心等待)");
                                 while (MainFunction.hookPoint == null)
                                 {
                                     MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
@@ -259,7 +261,8 @@ public class FloatWindow {
                                 }
 
                                     boolean stateWithserch = true;
-                                    setTipsText("扫到鱼钩，开始点击");
+                                    setTipsText("扫到钩子，开始点击");
+                                sleep(500);
                                     while(stateWithserch)
                                     {
                                         clickStablePostion();
@@ -275,6 +278,7 @@ public class FloatWindow {
                                                 StrogeXml.writeTwoPoint(context,MainFunction.hookPoint.x,MainFunction.hookPoint.y,
                                                                         MainFunction.fishStaPoint.x,MainFunction.fishStaPoint.y);
                                                 setTipsText("ok所有图标均已扫完");
+                                                sleep(500);
                                                 xmlState = false;
                                                 stateWithserch = false;
                                                 break;
@@ -283,7 +287,9 @@ public class FloatWindow {
                                     }
 
                             }
-                            setTipsText("正常运行");
+                            setTipsText("1s后运行（如果不动了请清掉该程序后台并重启）");
+                            sleep(1000);
+                            setTipsText("运行中");
                             int mainState = 0;
                             while (threadIsRunning) {
                                 switch(mainState)
@@ -291,7 +297,7 @@ public class FloatWindow {
                                     case 0:
 
                                         if(MainFunction.isHook()) {
-                                            Log.d(TAG, "检测到钩子，执行点击");
+                                            //Log.d(TAG, "检测到钩子，执行点击");
                                             clickStablePostion();
                                         }else if(MainFunction.isFishStae()){
                                           /*  MainFunction.addERROR = 0;

@@ -42,6 +42,9 @@ public class  MainFunction {
         if(hookPoint !=null){
             Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(hookPoint.x ,hookPoint.y,sizdToTrsf(48),sizdToTrsf(57));
             Mat mat = ImageHadle.binarizeToMat(bitmap,200);
+            if (bitmap == null) {
+                return false;
+            }
             if( ImageHadle.matchSimilarity(mat,hook) > 0.5) {
                // Log.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(hook,mat)));
                 bitmap.recycle();
@@ -62,6 +65,9 @@ public class  MainFunction {
      {
          Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(fishStaPoint.x,fishStaPoint.y,sizdToTrsf(60),sizdToTrsf(55));
          Mat mat = ImageHadle.binarizeToMat(bitmap,140);
+         if (bitmap == null) {
+             return false;
+         }
          if(ImageHadle.matchSimilarity(mat,fishsate) > 0.5){
              //og.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(mat,fishsate)));
              mat.release();

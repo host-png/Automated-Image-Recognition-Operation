@@ -37,6 +37,7 @@ public class ImageHadle {
 
     private ImageReader mImageReader;//图像接受对象
     private boolean isInitialized = false;
+    private final Object lock = new Object();
     public ImageHadle(int width, int height, int dpi) {//横屏交换 因为游戏是横平，后续不好改
         this.width = height;
         this.height = width;
@@ -78,33 +79,35 @@ public class ImageHadle {
     }
 
     public Bitmap getScreenBitmap() {
-        if (mImageReader == null) {
-            return null;
-        }
-
-        Image image = null;
-        Bitmap bitmap = null;
-        try {
-            // 串行取帧，不丢帧、不乱缓冲区状态
-            image = mImageReader.acquireNextImage();
-            if (image == null) {
+        synchronized (lock) {
+            if (mImageReader == null) {
                 return null;
             }
-            bitmap = imageToBitmap(image);
-        } catch (IllegalStateException e) {
-            // 捕获缓冲区锁定/重复关闭异常
-            Log.w("ImageHadle", "缓冲区状态异常，跳过当前帧");
-            return null;
-        } catch (Exception e) {
-            Log.e("ImageHadle", "截图转换异常", e);
-            return null;
-        } finally {
-            // 无论正常/异常，Image 必定关闭，杜绝泄漏
-            if (image != null) {
-                image.close();
+
+            Image image = null;
+            Bitmap bitmap = null;
+            try {
+                // 串行取帧，不丢帧、不乱缓冲区状态
+                image = mImageReader.acquireNextImage();
+                if (image == null) {
+                    return null;
+                }
+                bitmap = imageToBitmap(image);
+            } catch (IllegalStateException e) {
+                // 捕获缓冲区锁定/重复关闭异常
+                Log.w("ImageHadle", "缓冲区状态异常，跳过当前帧");
+                return null;
+            } catch (Exception e) {
+                Log.e("ImageHadle", "截图转换异常", e);
+                return null;
+            } finally {
+                // 无论正常/异常，Image 必定关闭，杜绝泄漏
+                if (image != null) {
+                    image.close();
+                }
             }
+            return bitmap;
         }
-        return bitmap;
     }
 
     // 图片转Bitmap（固定工具方法）
@@ -361,6 +364,9 @@ public class ImageHadle {
 
     //输入bit输出mat灰度图
     public static Mat binarizeToMat(Bitmap src, int thresh) {//外用完友爱释放
+        if (src == null) return new Mat();
+
+
         Mat srcMat = bitmapToMat(src);
         Mat grayMat = new Mat();
         Mat binMat = new Mat();
@@ -410,7 +416,9 @@ public class ImageHadle {
      */
     public static float matchSimilarity(Mat source, Mat template) {//截图  模板 别高反了
         Mat result = new Mat();
-
+        if (source.rows() < template.rows() || source.cols() < template.cols()) {
+            return 0.0f;
+        }
         // 执行模板匹配（最准的算法）
         Imgproc.matchTemplate(source, template, result, Imgproc.TM_CCOEFF_NORMED);
 
@@ -450,7 +458,9 @@ public class ImageHadle {
         Log.d("MatSizeCheck", "mat宽度cols=");
 
         Bitmap allScreen = MainActivity.imageHadle.getScreenBitmap();
-
+        if (allScreen == null) {
+            return null;
+        }
         Mat movemat;
         Bitmap areaBmp;
         try{

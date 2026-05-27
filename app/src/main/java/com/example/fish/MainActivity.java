@@ -13,8 +13,10 @@ import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Surface;
+import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
+import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -65,9 +67,31 @@ public class MainActivity extends AppCompatActivity {
         requestScreenRecordPermission();
 
 
+        Button btnResetPos = findViewById(R.id.ResetPos);
+        // 设置点击事件
+        btnResetPos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                resetAllPointData();
+            }
+        });
 
 
+    }
+    private void resetAllPointData() {
+        // 1. 清空内存中的坐标变量
+        MainFunction.hookPoint = null;
+        MainFunction.fishStaPoint = null;
+        MainFunction.cGLinepoint = null;
 
+        // 2. 恢复标记位，让悬浮窗下次重新进入扫描模式
+        FloatWindow.xmlState = false;
+
+        // 3. 清空本地XML存储的坐标（覆盖写入0值）
+        StrogeXml.writeTwoPoint(this, 0, 0, 0, 0);
+
+        // 可选：弹出Toast提示
+        android.widget.Toast.makeText(this, "坐标已重置，下次运行将重新扫描", android.widget.Toast.LENGTH_SHORT).show();
     }
     private void requestScreenRecordPermission() {
         MediaProjectionManager manager =
