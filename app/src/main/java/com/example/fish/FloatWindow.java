@@ -130,6 +130,8 @@ public class FloatWindow {
         mTipsParams.type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
+        mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+
         mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         mTipsParams.format = PixelFormat.TRANSLUCENT;
         mTipsParams.gravity = Gravity.TOP | Gravity.LEFT;

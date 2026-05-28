@@ -12,6 +12,7 @@ import android.os.Looper;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -20,6 +21,7 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -45,41 +47,60 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        context = this;
-        if (!OpenCVLoader.initDebug()) {
-            throw new RuntimeException("OpenCV 初始化失败！");
-        }
-        //无障碍
-        if (!isAccessibilityEnabled()) {
-            Toast.makeText(this, "请先开启无障碍权限！", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            startActivity(intent);
-        }
-        // 开启悬浮窗权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!Settings.canDrawOverlays(this)) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_disclaimer, null);
+// 2. 先找按钮（必须在 Builder 之前执行）
+        Button btnOk = dialogView.findViewById(R.id.btn_ok);
+
+// 3. 构建弹窗
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+        final AlertDialog dialog = builder.create();
+
+// 4. 设置点击事件
+        btnOk.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.setOnDismissListener(d -> {
+            context = this;
+            if (!OpenCVLoader.initDebug()) {
+                throw new RuntimeException("OpenCV 初始化失败！");
+            }
+            //无障碍
+            if (!isAccessibilityEnabled()) {
+                Toast.makeText(this, "请先开启无障碍权限！", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 startActivity(intent);
-                //checkAccessBackHome();
             }
-        }
-        //鲁平创权限
-        requestScreenRecordPermission();
+            // 开启悬浮窗权限
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (!Settings.canDrawOverlays(this)) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                    //checkAccessBackHome();
+                }
+            }
+            //鲁平创权限
+            requestScreenRecordPermission();
 
 
-        Button btnResetPos = findViewById(R.id.ResetPos);
-        // 设置点击事件
-        btnResetPos.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                resetAllPointData();
-            }
+            Button btnResetPos = findViewById(R.id.ResetPos);
+            // 设置点击事件
+            btnResetPos.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    resetAllPointData();
+                }
+            });
+
+            Button mJoinGroupBtn = findViewById(R.id.JoinGroup);
+
+            // 设置点击事件
+            mJoinGroupBtn.setOnClickListener(v -> joinQQGroup());
+
         });
+// 5. 显示弹窗
+        dialog.show();
 
-        Button mJoinGroupBtn = findViewById(R.id.JoinGroup);
-
-        // 设置点击事件
-        mJoinGroupBtn.setOnClickListener(v -> joinQQGroup());
     }
 
     /**
