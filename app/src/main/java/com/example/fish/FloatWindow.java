@@ -12,8 +12,10 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import org.opencv.core.Mat;
@@ -181,7 +183,7 @@ public class FloatWindow {
 
 
         // 按钮点击
-        Button btn = mFloatView.findViewById(R.id.float_btn);
+        ImageButton btn = mFloatView.findViewById(R.id.float_btn);
         MainFunction.init();
 
         //检测文件内容不空读取数据
@@ -192,7 +194,7 @@ public class FloatWindow {
                 buttonState = false;
                 threadIsRunning = true;
                threadIsRunning1 = true;
-                btn.setText("关闭钓鱼");
+                btn.setImageResource(R.drawable.zaowu_glasses);
                 setTipsText("运行中");
                 Log.i(TAG, "启动钓鱼运行线程");
 
@@ -339,7 +341,7 @@ public class FloatWindow {
                 threadIsRunning1  = false;
                 buttonState = true;
                 threadIsRunning = false;
-                btn.setText("开始钓鱼");
+                btn.setImageResource(R.drawable.zaowu_icon);
                 setTipsText("已暂停");
                 Log.i(TAG, "停止钓鱼运行，线程标记关闭");
             }
