@@ -164,19 +164,43 @@ public class FloatWindow {
     private void initFloatWindow(Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         mFloatView = LayoutInflater.from(context).inflate(R.layout.float_window, null);
+
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O//安卓版本不同设置不同类型
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
 
-        // 悬浮参数
+        Point screenSize = new Point();
+        mWindowManager.getDefaultDisplay().getSize(screenSize);
+        int screenWidth = screenSize.x;
+        float density = context.getResources().getDisplayMetrics().density;
+
+        // 2. 找到按钮控件
+        ImageButton btn1 = mFloatView.findViewById(R.id.float_btn);
+
+        // 3. if 判断，动态修改按钮宽高（等价改 xml 的 dp）
+        int targetDp;
+        if (screenWidth <= 540) {
+            targetDp = 40;   // 极小屏
+        } else if (screenWidth <= 720) {
+            targetDp = 40;   // 小屏
+        } else {
+            targetDp = 55;   // 大屏，和xml默认一致
+        }
+
+        // dp 转像素，赋值给按钮布局参数
+        int px = (int) (targetDp * density + 0.5f);
+        ViewGroup.LayoutParams btnParams = btn1.getLayoutParams();
+        btnParams.width = px;
+        btnParams.height = px;
+        btn1.setLayoutParams(btnParams);
+        // 5. 初始化悬浮窗参数
         mParams = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT,  // 1. 宽度自适应按钮大小
-                WindowManager.LayoutParams.WRAP_CONTENT,  // 2. 高度自适应按钮大小
-                type,                                     // 3. 悬浮窗类型（全局顶层）
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, // 4. 不抢焦点（不影响你点屏幕）
-                PixelFormat.TRANSLUCENT                   // 5. 透明格式
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                type,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                PixelFormat.TRANSLUCENT
         );
-        //初始位置
         mParams.gravity = Gravity.LEFT | Gravity.TOP;
         mParams.x = 100;
         mParams.y = 300;

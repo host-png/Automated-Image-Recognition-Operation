@@ -76,8 +76,34 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Button mJoinGroupBtn = findViewById(R.id.JoinGroup);
 
+        // 设置点击事件
+        mJoinGroupBtn.setOnClickListener(v -> joinQQGroup());
     }
+
+    /**
+     * 跳转到QQ群
+     * 替换成你自己的 群号、Key（QQ群专属）
+     * 获取方式：QQ群 → 右上角 → 分享群 → 复制链接，链接里包含 key 和 群号
+     */
+    private void joinQQGroup() {
+        try {
+            // 直接用群号打开QQ群资料页，点加入即可
+            String url = "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=206811417&card_type=group&source=qrcode";
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+        } catch (Exception e) {
+            // 没装QQ就打开你的加群链接
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://qun.qq.com/universal-share/share?ac=1&authKey=lT2wzR3odFrOzeSOtd%2Bcz%2FBzbU6M8B0UVQErHi8lKMl%2FLfweqeqNUidBx3Oeu8Ak&busi_data=eyJncm91cENvZGUiOiIyMDY4MTE0MTciLCJ0b2tlbiI6IkU1U21oKzRlSlNxV2ovZ2hqbVhRckVGTSszYzlLMEFtWlkycC92M05LWk83NXlLSlh4cEZXVlZEY3c0dmxQTFIiLCJ1aW4iOiIyNDcxNTM4NTY1In0%3D&data=NasoBg7Se0LX8nCyCFJWlQ3imWo_3HA8fd5uCDBBPRDGtdFOuyvBCHNgr3oegsRUBcL5HoVkzR8CusQYjW6sHg&svctype=4&tempid=h5_group_info"));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(intent);
+            Toast.makeText(context, "请安装QQ并加入群", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
     private void resetAllPointData() {
         // 1. 清空内存中的坐标变量
         MainFunction.hookPoint = null;
