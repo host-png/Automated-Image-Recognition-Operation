@@ -35,7 +35,7 @@
         android:id="@+id/textView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="by:pingtang 联系邮箱:2471538565@qq.com"
+        android:text=""
         android:background="#FFFFFFFF"
         android:textColor="#FF000000"
         android:textSize="13sp"

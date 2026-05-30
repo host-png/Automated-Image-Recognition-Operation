@@ -130,7 +130,7 @@ public class FloatWindow {
         mTipsParams.type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
-        mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+       // mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 
         mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         mTipsParams.format = PixelFormat.TRANSLUCENT;
@@ -215,6 +215,8 @@ public class FloatWindow {
         //检测文件内容不空读取数据
 
         btn.setOnClickListener(v -> {
+
+
             Log.d(TAG, "按钮被点击，当前按钮状态：" + buttonState);
             if(buttonState) {
                 buttonState = false;
@@ -237,6 +239,17 @@ public class FloatWindow {
                     xmlState =false;
 
                 }
+
+           /*     Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.cGLinepoint.x, MainFunction.cGLinepoint.y, MainFunction.sWToTrsf(785), MainFunction.sizdToTrsf(5));
+                if (areaBitmap == null){
+
+                }else {
+                    MainActivity.imageHadle.saveBitmap(areaBitmap);
+                    Mat mat = ImageHadle.twoBinarizeToMat(areaBitmap, 160,177);
+                    MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+                }
+
+*/
               /*  if(MainFunction.hookPoint == null)
                 {
                     MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
@@ -320,17 +333,19 @@ public class FloatWindow {
                             setTipsText("运行中");
                             int mainState = 0;
                             while (threadIsRunning) {
+                                sleep(10);//防止太快出bug
                                 switch(mainState)
                                 {
+
                                     case 0:
 
                                         if(MainFunction.isHook()) {
                                             //Log.d(TAG, "检测到钩子，执行点击");
                                             clickStablePostion();
                                         }else if(MainFunction.isFishStae()){
-                                          /*  MainFunction.addERROR = 0;
-                                            MainFunction.lastError = 0;
-                                      */      mainState = 1;
+                                            /*MainFunction.addERROR = 0;
+                                            MainFunction.lastError = 0;*/
+                                            mainState = 1;
 
                                         }else {
 
@@ -360,7 +375,6 @@ public class FloatWindow {
                             Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
                     }).start();
-
 
             }
             else {

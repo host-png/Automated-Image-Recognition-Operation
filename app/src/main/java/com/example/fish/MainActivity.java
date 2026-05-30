@@ -18,6 +18,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -49,7 +50,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_disclaimer, null);
 // 2. 先找按钮（必须在 Builder 之前执行）
+
+
+        // 绑定控件并动态赋值文字 防止逆向修改
+        TextView tvFooter = findViewById(R.id.textView);
+        TextView tvTitle = dialogView.findViewById(R.id.tv_title);
+        TextView tvContent = dialogView.findViewById(R.id.tv_content);
         Button btnOk = dialogView.findViewById(R.id.btn_ok);
+        tvTitle.setText("免责声明");
+        tvContent.setText("本软件开源免费，禁止任何形式商用。仅供个人学习交流使用，请勿用于违规场景。使用本软件产生的一切后果，由使用者自行承担。");
+        btnOk.setText("已知晓");
+        tvFooter.setText("by:pingtang 联系邮箱:2471538565@qq.com");
+
+        //Button btnOk = dialogView.findViewById(R.id.btn_ok);
 
 // 3. 构建弹窗
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
