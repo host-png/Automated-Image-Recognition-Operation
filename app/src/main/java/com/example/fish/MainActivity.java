@@ -38,16 +38,21 @@ public class MainActivity extends AppCompatActivity {
     public static ImageHadle imageHadle;
     public static Context context;
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-
+    private static boolean mScreenRecordAuth = false;
     public static int width,height,dpi;
 
-
+    public static boolean bigAre = false;
+    // 权限状态文本控件
+    private TextView tvPermissionStatus;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        // 绑定权限文本控件
+        tvPermissionStatus = findViewById(R.id.textView2);
+
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_disclaimer, null);
 // 2. 先找按钮（必须在 Builder 之前执行）
 
@@ -83,7 +88,9 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "请先开启无障碍权限！", Toast.LENGTH_SHORT).show();
                 Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 startActivity(intent);
+                updatePermissionText();
             }
+
             // 开启悬浮窗权限
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 if (!Settings.canDrawOverlays(this)) {
@@ -95,7 +102,24 @@ public class MainActivity extends AppCompatActivity {
             //鲁平创权限
             requestScreenRecordPermission();
 
+            Button btnExpand = findViewById(R.id.areBig);
+            btnExpand.setOnClickListener(v -> {
+              if(!bigAre)
+              {
+                  btnExpand.setText("恢复搜索范围");
+                  bigAre= true;
+                  Toast.makeText(MainActivity.this, "已扩大搜索范围,并且自动重置坐标", Toast.LENGTH_SHORT).show();
+                  resetAllPointData();
+                  updatePermissionText();
+              }else {
+                  btnExpand.setText("扩大搜索范围");
+                  bigAre = false;
+                  Toast.makeText(MainActivity.this, "已恢复搜索范围，并且自动重置坐标", Toast.LENGTH_SHORT).show();
+                  resetAllPointData();
+                  updatePermissionText();
 
+              }
+                     });
             Button btnResetPos = findViewById(R.id.ResetPos);
             // 设置点击事件
             btnResetPos.setOnClickListener(new View.OnClickListener() {
@@ -116,11 +140,27 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    /**
-     * 跳转到QQ群
-     * 替换成你自己的 群号、Key（QQ群专属）
-     * 获取方式：QQ群 → 右上角 → 分享群 → 复制链接，链接里包含 key 和 群号
-     */
+    // 检测无障碍权限
+
+
+    // 检测悬浮窗权限
+    private boolean isFloatWindowEnabled() {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this);
+    }
+
+    // 检测录屏权限（根据你项目逻辑：授权后标记为true）
+    // 这里复用你 ScreenRecordService 的授权状态，可根据自身逻辑修改
+
+
+    private void updatePermissionText(){
+        boolean floatPerm = isFloatWindowEnabled();
+        boolean accessPerm = isAccessibilityEnabled();
+        boolean recordPerm = mScreenRecordAuth;
+
+        String content = String.format("当前权限状态：悬浮窗%s 无障碍%s 录屏%s\n 当前搜索范围扩大状态%s",
+                floatPerm, accessPerm, recordPerm,bigAre);
+        tvPermissionStatus.setText(content);
+    }
     private void joinQQGroup() {
         try {
             // 直接用群号打开QQ群资料页，点加入即可
@@ -167,11 +207,11 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == REQUEST_CODE_SCREEN_RECORD) {
             if (resultCode == RESULT_OK) {
-
+                mScreenRecordAuth = true;
                 Toast.makeText(this, "录屏权限获取成功！", Toast.LENGTH_SHORT).show();
                 Log.d("ScreenCapture", "✅ 录屏权限授权成功，通道已初始化");
                 ScreenRecordService.setAuthData(resultCode, data);
-
+                updatePermissionText();
                 // 权限获取后
                 // 启动前台服务，服务内部自动init
                 Intent serviceIntent = new Intent(this, ScreenRecordService.class);

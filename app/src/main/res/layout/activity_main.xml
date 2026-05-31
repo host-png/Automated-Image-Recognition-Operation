@@ -45,4 +45,42 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toBottomOf="parent" />
 
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFFFF"
+        android:textColor="#FF000000"
+        android:text="当前权限状态：悬浮窗false 无障碍false 录屏false"
+        app:layout_constraintBottom_toTopOf="@+id/ResetPos"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/areBig"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="扩大搜索范围"
+        app:layout_constraintBottom_toTopOf="@+id/ResetPos"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView2"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp"
+        android:background="#FFFFFFFF"
+        android:textColor="#FF000000"
+        android:text="云异环或者扫不到坐标就点击扩大搜索范围"
+        app:layout_constraintBottom_toTopOf="@+id/areBig"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/textView2"
+        app:layout_constraintVertical_bias="1.0" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

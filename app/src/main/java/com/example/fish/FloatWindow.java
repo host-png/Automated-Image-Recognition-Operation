@@ -297,9 +297,15 @@ public class FloatWindow {
                                 setTipsText("扫描钩子(耐心等待)");
                                 while (MainFunction.hookPoint == null)
                                 {
-                                    MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
-                                            57*ImageHadle.height/1080*2,200);
-                                }
+                                    if(!MainActivity.bigAre) {
+                                        MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                                                57*ImageHadle.height/1080*2,200);
+
+                                    }else {
+                                        MainFunction.hookPoint= ImageHadle.yunuiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                                                57*ImageHadle.height/1080*2,200);//云扩大范围
+                                    }
+                                       }
 
                                     boolean stateWithserch = true;
                                     setTipsText("扫到钩子，开始点击");
@@ -309,10 +315,17 @@ public class FloatWindow {
                                         clickStablePostion();
                                         if(MainFunction.isHook() == false){
                                             setTipsText("扫描鱼标");
-                                            MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
-                                                    new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
-                                                    60*ImageHadle.height/1080*2,140);
-                                            if(MainFunction.fishStaPoint != null)
+                                            if(!MainActivity.bigAre) {
+                                                MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
+                                                        new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
+                                                        60*ImageHadle.height/1080*2,140);
+
+                                            }else {
+                                                MainFunction.fishStaPoint = ImageHadle.yunuiLineSearch(MainFunction.fishsate,
+                                                        new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
+                                                        60*ImageHadle.height/1080*2,140);
+                                            }
+                                           if(MainFunction.fishStaPoint != null)
                                             {
                                                 MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
                                                         MainFunction.fishStaPoint.y + getGreenSizPo());

@@ -474,7 +474,7 @@ public class ImageHadle {
                 movemat =  binarizeToMat(areaBmp,thresh);
                         //MainActivity.imageHadle.getAreaBitmap();
 
-
+              //  Log.v("xianhgsoo", "fishstaok");
 
                 if( matchSimilarity(movemat,mat) >0.6)
                {
@@ -498,6 +498,67 @@ public class ImageHadle {
             allScreen.recycle();
         }
     }
+        return null;
+
+    }
+    public static Point yunuiLineSearch(Mat mat,Point cenPos,int scope,int thresh){
+
+        scope*=2;
+        // 1. 计算扫描区域左上角 & 做边界限制（核心修复：防止 x/y 负数）
+        int scanLeft = cenPos.x - (scope / 2);
+        int scanTop = cenPos.y - (scope / 2);
+        // 强制坐标 >= 0
+        scanLeft = Math.max(0, scanLeft);
+        scanTop = Math.max(0, scanTop);
+       // Mat cutImage = bitmapToMat(MainActivity.imageHadle.getAreaBitmap(scanLeft,scanTop ,scope,scope));
+        //MainActivity.imageHadle.saveBitmap(matToBitmap(cutImage));
+
+        //县固定列扫描行数
+        Log.d("cc", "mat宽度cols="+mat.cols()+" 高度rows="+mat.rows());
+        Log.d("MatSizeCheck", "mat宽度cols=");
+
+        Bitmap allScreen = MainActivity.imageHadle.getScreenBitmap();
+        if (allScreen == null) {
+            return null;
+        }
+
+        Mat movemat;
+        Bitmap areaBmp;
+        try{
+            for (int co = 0;co<scope-mat.cols();co++)//列
+            {
+                for (int ro = 0;ro<scope-mat.rows();ro++)//行
+                {
+
+                    areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
+                            , mat.cols(),mat.rows());
+                    movemat =  binarizeToMat(areaBmp,thresh);
+                    //MainActivity.imageHadle.getAreaBitmap();
+
+                    // Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
+
+                    if( matchSimilarity(movemat,mat) >0.6)
+                    {
+                        Point point = new Point(scanLeft+co,scanTop +ro);
+                        return point;
+                    }
+                    if (areaBmp != null) {
+                        areaBmp.recycle();
+                        areaBmp = null;
+                    }
+                    if (movemat != null) {
+                        movemat.release();
+                        movemat = null;
+                    }
+
+                }
+            }
+        } finally {
+            // 最终释放整屏图
+            if (allScreen != null) {
+                allScreen.recycle();
+            }
+        }
         return null;
 
     }
