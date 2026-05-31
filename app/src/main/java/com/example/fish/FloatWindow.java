@@ -333,7 +333,7 @@ public class FloatWindow {
                             setTipsText("运行中");
                             int mainState = 0;
                             while (threadIsRunning) {
-                                sleep(10);//防止太快出bug
+                                sleep(20);//防止太快出bug
                                 switch(mainState)
                                 {
 

@@ -201,7 +201,7 @@ public class  MainFunction {
     // 修正：改成静态代码块初始化
     public static float speep;
     static {
-        speep =  (float)sWToTrsf(771)/2230;//xToTrsf像素/时间   单位像素/ms
+        speep =  (float)sWToTrsf(771)/2230;//xToTrsf像素/时间   单位像素/ms771/2230
     }
 
     public static void currMove(int move)//输入移动移动方向进行移动s

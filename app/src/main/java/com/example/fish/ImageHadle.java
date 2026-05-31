@@ -65,7 +65,7 @@ public class ImageHadle {
 
 
         if (mImageReader == null) {// 创建图像接收器
-            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 6);
+            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1);
         }
 
         ScreenRecordService.mMediaProjection.createVirtualDisplay( // 创建虚拟屏幕（画面开始流入，但你不读就不消耗性能）
