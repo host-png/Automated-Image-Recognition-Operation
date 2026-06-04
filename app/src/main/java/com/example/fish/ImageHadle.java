@@ -18,10 +18,12 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 
 import org.opencv.core.Mat;
 
+import org.opencv.core.MatOfPoint;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -32,6 +34,9 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import android.graphics.Point;
+import java.util.ArrayList;
+import java.util.List;
+
 public class ImageHadle {
     public static int width, height, dpi;//屏幕信息
 
@@ -503,17 +508,21 @@ public class ImageHadle {
     }
     public static Point yunuiLineSearch(Mat mat,Point cenPos,int scope,int thresh){
 
-        scope*=2;
+        scope*=SetingTheParmer.expendTheSechArea;
         // 1. 计算扫描区域左上角 & 做边界限制（核心修复：防止 x/y 负数）
         int scanLeft = cenPos.x - (scope / 2);
         int scanTop = cenPos.y - (scope / 2);
+
+        int scanfRight = cenPos.x + (scope/2);
+        int scanDown = cenPos.y + (scope/2);
         // 强制坐标 >= 0
         scanLeft = Math.max(0, scanLeft);
         scanTop = Math.max(0, scanTop);
-       // Mat cutImage = bitmapToMat(MainActivity.imageHadle.getAreaBitmap(scanLeft,scanTop ,scope,scope));
-        //MainActivity.imageHadle.saveBitmap(matToBitmap(cutImage));
-
-        //县固定列扫描行数
+        scanfRight = Math.min(width,scanfRight);
+        scanDown=Math.min(height,scanDown);
+    /*    Mat cutImage = bitmapToMat(MainActivity.imageHadle.getAreaBitmap(scanLeft,scanTop ,scanfRight-scanLeft,scanDown-scanTop));
+        MainActivity.imageHadle.saveBitmap(matToBitmap(cutImage));
+    */    //县固定列扫描行数
         Log.d("cc", "mat宽度cols="+mat.cols()+" 高度rows="+mat.rows());
         Log.d("MatSizeCheck", "mat宽度cols=");
 
@@ -524,21 +533,34 @@ public class ImageHadle {
 
         Mat movemat;
         Bitmap areaBmp;
+        float k = 0,b =0;
         try{
-            for (int co = 0;co<scope-mat.cols();co++)//列
+            for (int co = 0;co<scanfRight-scanLeft - mat.width();co++)//列
             {
-                for (int ro = 0;ro<scope-mat.rows();ro++)//行
+                for (int ro = 0;ro<scanDown-scanTop - mat.height();ro++)//行
                 {
 
                     areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
                             , mat.cols(),mat.rows());
                     movemat =  binarizeToMat(areaBmp,thresh);
-                    //MainActivity.imageHadle.getAreaBitmap();
+                  /*  MainActivity.imageHadle.getAreaBitmap();
 
-                    // Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
+                     Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
+*/
+                    b =matchSimilarity(movemat,mat);
+                 if(k < b)
+                 {
+                     k= b;
+                     Log.v("xiangsi", String.valueOf(k));
 
-                    if( matchSimilarity(movemat,mat) >0.6)
+                 }
+
+                    if( b>0.7)
                     {
+                        areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
+                                , mat.cols(),mat.rows());
+                        MainActivity.imageHadle.saveBitmap(areaBmp);
+
                         Point point = new Point(scanLeft+co,scanTop +ro);
                         return point;
                     }
@@ -561,6 +583,60 @@ public class ImageHadle {
         }
         return null;
 
+    }
+    public static Mat vectorScaleMat(Mat srcMat, int targetW, int targetH) {
+        Mat gray = new Mat();
+        if(srcMat.channels() > 1){
+            Imgproc.cvtColor(srcMat, gray, Imgproc.COLOR_BGR2GRAY);
+        }else{
+            gray = srcMat.clone();
+        }
+
+        List<MatOfPoint> contours = new ArrayList<>();
+        org.opencv.core.Mat hierarchy = new org.opencv.core.Mat();
+        Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        int srcW = srcMat.cols();
+        int srcH = srcMat.rows();
+        double scaleX = 1.0 * targetW / srcW;
+        double scaleY = 1.0 * targetH / srcH;
+
+        Mat dst = Mat.zeros(new Size(targetW, targetH), CvType.CV_8UC1);
+
+        for (MatOfPoint contour : contours) {
+            // OpenCV原生点位
+            org.opencv.core.Point[] opPts = contour.toArray();
+            // 你项目原有 android.graphics.Point 数组
+            Point[] newPts = new Point[opPts.length];
+
+            for (int i = 0; i < opPts.length; i++) {
+                double nx = opPts[i].x * scaleX;
+                double ny = opPts[i].y * scaleY;
+                int px = (int) Math.round(nx);
+                int py = (int) Math.round(ny);
+                // 继续使用安卓Point，不改动全局Point类
+                newPts[i] = new Point(px, py);
+            }
+
+            // android.Point → OpenCV.MatOfPoint 转换
+            org.opencv.core.Point[] cvPoints = new org.opencv.core.Point[newPts.length];
+            for(int i=0;i<newPts.length;i++){
+                cvPoints[i] = new org.opencv.core.Point(newPts[i].x, newPts[i].y);
+            }
+            MatOfPoint newContour = new MatOfPoint(cvPoints);
+
+            List<MatOfPoint> tempList = new ArrayList<>();
+            tempList.add(newContour);
+            Imgproc.drawContours(dst, tempList, 0, new Scalar(255), -1);
+            newContour.release();
+        }
+
+        gray.release();
+        hierarchy.release();
+        for(MatOfPoint mp : contours){
+            mp.release();
+        }
+        return dst;
     }
 
 

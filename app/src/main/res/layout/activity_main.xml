@@ -61,7 +61,7 @@
         android:id="@+id/areBig"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="扩大搜索范围"
+        android:text="扩大搜索范围(长按设置扩大倍率)"
         app:layout_constraintBottom_toTopOf="@+id/ResetPos"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

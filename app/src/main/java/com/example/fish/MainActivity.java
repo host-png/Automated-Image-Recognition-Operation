@@ -112,14 +112,21 @@ public class MainActivity extends AppCompatActivity {
                   resetAllPointData();
                   updatePermissionText();
               }else {
-                  btnExpand.setText("扩大搜索范围");
+                  btnExpand.setText("扩大搜索范围(长按设置扩大倍率)");
                   bigAre = false;
                   Toast.makeText(MainActivity.this, "已恢复搜索范围，并且自动重置坐标", Toast.LENGTH_SHORT).show();
                   resetAllPointData();
                   updatePermissionText();
 
               }
+
                      });
+            // ==========新增长按：弹出倍率修改弹窗==========
+            btnExpand.setOnLongClickListener(v->{
+                showExpandSettingDialog();
+                return true;
+            });
+
             Button btnResetPos = findViewById(R.id.ResetPos);
             // 设置点击事件
             btnResetPos.setOnClickListener(new View.OnClickListener() {
@@ -142,6 +149,49 @@ public class MainActivity extends AppCompatActivity {
 
     // 检测无障碍权限
 
+    //长按弹窗：修改expendTheSechArea放大倍率
+    //长按弹窗：修改expendTheSechArea放大倍率
+    private void showExpandSettingDialog() {
+        Context app = getApplicationContext();
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(app);
+        builder.setTitle("图像扩大搜索倍率设置");
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(app);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(40,20,40,20);
+
+        android.widget.TextView tvTip = new android.widget.TextView(app);
+        tvTip.setText("扩大搜索系数(整数)平板用户适当增大");
+        tvTip.setTextSize(15);
+        layout.addView(tvTip);
+
+        final android.widget.EditText etExpand = new android.widget.EditText(app);
+        etExpand.setText(String.valueOf(SetingTheParmer.expendTheSechArea));
+        layout.addView(etExpand);
+
+        builder.setView(layout);
+        android.app.AlertDialog dialog = builder.create();
+
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
+        WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+        lp.type = type;
+        dialog.getWindow().setAttributes(lp);
+
+        dialog.setButton(android.app.Dialog.BUTTON_POSITIVE, "保存", (d, which) -> {
+            try{
+                int val = Integer.parseInt(etExpand.getText().toString().trim());
+                SetingTheParmer.expendTheSechArea = val;
+                SetingTheParmer.saveFile(app);
+                Toast.makeText(this,"倍率已保存",Toast.LENGTH_SHORT).show();
+            }catch (NumberFormatException e){
+                Toast.makeText(this,"输入非法数字",Toast.LENGTH_SHORT).show();
+            }
+        });
+        dialog.setButton(android.app.Dialog.BUTTON_NEGATIVE,"取消",(d,w)->{});
+        dialog.show();
+    }
 
     // 检测悬浮窗权限
     private boolean isFloatWindowEnabled() {

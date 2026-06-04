@@ -40,6 +40,7 @@ public class FloatWindow {
 
     public FloatWindow(Context context) {//构造函数
         appContext = context.getApplicationContext();
+        SetingTheParmer.init(appContext);
         initFloatWindow(context);
     }
     private View mTipsView;
@@ -114,9 +115,16 @@ public class FloatWindow {
     }
 
 
+    // 三击弹窗相关
+    private int tipsClickCount = 0;
+    private long lastTipsClickTime = 0;
+    // 三击判定间隔(ms)：1000ms内连续3次点击触发弹窗
+    private final long CLICK_INTERVAL = 300;
+
+
     private void createFloatTips() {
         mTipsText = new android.widget.TextView(appContext);
-        mTipsText.setText("未开始");
+        mTipsText.setText("未开始（连续点击三下进入参数设置）");
         int textSize = (int)(ImageHadle.height*0.013f);
         mTipsText.setTextSize(textSize);
        // mTipsText.setTextSize(14);
@@ -132,14 +140,87 @@ public class FloatWindow {
                 : WindowManager.LayoutParams.TYPE_PHONE;
        // mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 
-        mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+        mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE ;
         mTipsParams.format = PixelFormat.TRANSLUCENT;
         mTipsParams.gravity = Gravity.TOP | Gravity.LEFT;
         mTipsParams.x = 0;
         mTipsParams.y = ImageHadle.height/2;
+// 绑定点击监听，实现三击弹窗
+        mTipsText.setOnClickListener(v -> {
+            long now = System.currentTimeMillis();
+            // 超过间隔清空计数
+            if (now - lastTipsClickTime > CLICK_INTERVAL) {
+                tipsClickCount = 0;
+            }
+            lastTipsClickTime = now;
+            tipsClickCount++;
+
+            if (tipsClickCount >= 3) {
+                tipsClickCount = 0; // 重置计数
+                showSettingDialog(); // 弹出配置弹窗
+            }
+        });
 
         mWindowManager.addView(mTipsText, mTipsParams);
     }
+
+    private void showSettingDialog() {
+
+        // 改用系统悬浮窗弹窗，避开Activity Token报错
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(appContext);
+        builder.setTitle("钓鱼参数配置");
+
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(appContext);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setPadding(40,20,40,20);
+
+        // 单独标题文本：全局循环帧数(hz)
+        android.widget.TextView tvAllTip = new android.widget.TextView(appContext);
+        tvAllTip.setText("全局循环帧数(hz)越大光标越灵敏，但发热也越严重");
+        tvAllTip.setTextSize(15);
+        layout.addView(tvAllTip);
+
+        final android.widget.EditText etAllTime = new android.widget.EditText(appContext);
+        etAllTime.setText(String.valueOf((int)(1000.0 / SetingTheParmer.allTheardTime)));
+        layout.addView(etAllTime);
+
+        // 单独标题文本：点击后等待延时(ms)
+        android.widget.TextView tvClickTip = new android.widget.TextView(appContext);
+        tvClickTip.setText("点击后等待延时(ms)");
+        tvClickTip.setTextSize(15);
+        layout.addView(tvClickTip);
+
+        final android.widget.EditText etClickTime = new android.widget.EditText(appContext);
+        etClickTime.setText(String.valueOf(SetingTheParmer.clickTime));
+        layout.addView(etClickTime);
+
+        builder.setView(layout);
+
+        android.app.AlertDialog dialog = builder.create();
+        // 关键：弹窗设置悬浮窗类型，脱离Activity依赖
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
+        WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+        lp.type = type;
+        dialog.getWindow().setAttributes(lp);
+
+        dialog.setButton(android.app.Dialog.BUTTON_POSITIVE, "保存并修改", (d, which) -> {
+            try{
+                int allT = Integer.parseInt(etAllTime.getText().toString().trim());
+                int clickT = Integer.parseInt(etClickTime.getText().toString().trim());
+                SetingTheParmer.clickTime = clickT;
+                SetingTheParmer.allTheardTime = 1000/allT;
+                SetingTheParmer.saveFile(appContext);
+                setTipsText("参数已保存");
+            }catch (NumberFormatException e){
+                setTipsText("参数格式错误！");
+            }
+        });
+        dialog.setButton(android.app.Dialog.BUTTON_NEGATIVE, "取消", (d, which)->{});
+        dialog.show();
+    }
+
 
 
     public int getGreenSizPo()
@@ -300,19 +381,45 @@ public class FloatWindow {
                                     if(!MainActivity.bigAre) {
                                         MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                 57*ImageHadle.height/1080*2,200);
-
+                                    if(MainFunction.hookPoint == null)
+                                    {
+                                        setTipsText("这一轮失败5s后进入下一轮");
+                                        sleep(5000);
+                                        setTipsText("..扫描钩子(耐心等待)");
+                                    }
                                     }else {
                                         MainFunction.hookPoint= ImageHadle.yunuiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                 57*ImageHadle.height/1080*2,200);//云扩大范围
+                                        if(MainFunction.hookPoint == null)
+                                        {
+                                            setTipsText("这一轮失败5s后进入下一轮");
+                                            sleep(5000);
+                                            setTipsText("..扫描钩子(耐心等待)");
+                                        }
                                     }
                                        }
 
                                     boolean stateWithserch = true;
                                     setTipsText("扫到钩子，开始点击");
+                                    if(MainActivity.bigAre)
+                                    {  clickStablePostion();
+                                        clickStablePostion();
+                                        sleep(2000);
+                                        setTipsText("检测到你已经开启了大区域，3s后点击");
+                                        sleep(3000);
+                                        clickStablePostion();
+                                        clickStablePostion();
+                                        setTipsText("如果没有点击成功就算失败了");
+                                        sleep(3000);
+                                        setTipsText("鱼鳔没了没事它还在与之前截的图比对，除非三次进行了点击否则别关掉程序");
+                                        sleep(10000);
+                                        //
+                                    }
                                 sleep(500);
                                     while(stateWithserch)
                                     {
                                         clickStablePostion();
+                                        sleep(SetingTheParmer.clickTime);
                                         if(MainFunction.isHook() == false){
                                             setTipsText("扫描鱼标");
                                             if(!MainActivity.bigAre) {
@@ -346,7 +453,7 @@ public class FloatWindow {
                             setTipsText("运行中");
                             int mainState = 0;
                             while (threadIsRunning) {
-                                sleep(20);//防止太快出bug
+                                sleep(SetingTheParmer.allTheardTime);//防止太快出bug
                                 switch(mainState)
                                 {
 
@@ -355,6 +462,7 @@ public class FloatWindow {
                                         if(MainFunction.isHook()) {
                                             //Log.d(TAG, "检测到钩子，执行点击");
                                             clickStablePostion();
+                                            sleep(SetingTheParmer.clickTime);
                                         }else if(MainFunction.isFishStae()){
                                             /*MainFunction.addERROR = 0;
                                             MainFunction.lastError = 0;*/
@@ -363,6 +471,7 @@ public class FloatWindow {
                                         }else {
 
                                             clickStablePostion();
+                                            sleep(SetingTheParmer.clickTime);
                                         }
                                         break;
                                     case 1:
@@ -374,6 +483,7 @@ public class FloatWindow {
                                         else {
 
                                             clickStablePostion();
+                                            sleep(SetingTheParmer.clickTime);
                                             if (MainFunction.isHook()) {
                                                 MainFunction.weithState = true;
                                                 mainState = 0;
@@ -385,6 +495,7 @@ public class FloatWindow {
                             }
                             Log.i(TAG, "钓鱼线程正常退出循环");
                         } catch (Exception e) {
+                            setTipsText("钓鱼线程异常崩溃");
                             Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
                     }).start();

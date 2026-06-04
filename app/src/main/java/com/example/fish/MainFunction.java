@@ -26,8 +26,11 @@ public class  MainFunction {
     public static void init(){//初始化
         hook = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.hook);
         fishsate =  ImageHadle.loadRawTemplate(MainActivity.context,R.raw.fishstate);
-        hook = ImageHadle.scaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));//尺寸之更宽度有关
-        fishsate = ImageHadle.scaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
+        //hook = ImageHadle.scaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));
+        hook = ImageHadle.vectorScaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));
+
+        //fishsate = ImageHadle.scaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
+        fishsate = ImageHadle.vectorScaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
       //  fishsate=ImageHadle.scaleMat(fishsate,xToTrsf(60),yToTrsf(55));
     }
 
