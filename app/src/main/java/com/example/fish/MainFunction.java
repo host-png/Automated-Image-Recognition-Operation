@@ -6,6 +6,7 @@ import android.provider.ContactsContract;
 import android.util.Log;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 
 public class  MainFunction {
     public static Mat hook, fishsate;
@@ -90,6 +91,7 @@ public class  MainFunction {
 
     //cGLinepoint.x = fishSta.x+sWToTrsf(119)
     public static int cursorPoint() {
+
         int x = 0;
         Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, sWToTrsf(785), sizdToTrsf(5));
         if (areaBitmap == null) return -1;
@@ -199,6 +201,9 @@ public class  MainFunction {
         return (weightOfGreen/2) + x + cGLinepoint.x;//返回率条中心坐标
     }
 
+
+
+
     public static int addERROR = 0;
     public static int lastError = 0;
     // 修正：改成静态代码块初始化
@@ -233,13 +238,188 @@ public class  MainFunction {
 
     //高灵敏控制
     public static void contralCurr() {
-        int currX = cursorPoint();
-        int greenX = greenPostison();
+        int currX = newCursorPoint();
+        int greenX = newGreenPostison();
         if(-5>(currX-greenX)||(currX-greenX)>5){//控制在10个像素以内
             currMove(greenX-currX);
         }
 
     }
 
+    //hsv图像色阈法设置第三组坐标
+    public static void initSearchTheGreenPosHsv(Bitmap allscren) {//前提要有fishstatePoint//外面传入screemall
 
+        int x = MainFunction.fishStaPoint.x+MainFunction.fishsate.width();
+        int y =   MainFunction.fishStaPoint.y;
+        //截取
+     Bitmap bitmap  = MainActivity.imageHadle.getAreaBitmap(allscren,x,y,
+            ImageHadle.width - 2*(x),MainFunction.fishsate.height());
+
+    Mat mat = ImageHadle.bitmapToBGRMat(bitmap);
+    //定义绿色范围
+    Scalar lowerGreen = new Scalar(35,60,70);
+    Scalar upperGreen = new Scalar(75,255,255);
+
+    Mat greenMask = ImageHadle.filterByHSV(mat, lowerGreen, upperGreen);
+      /*  MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
+*/
+        mat.release();
+    int addPos = 0;
+    int num = 0;
+    boolean firstWrite = false,exit1 = false;
+    //从下网上扫
+    for (int i = MainFunction.fishsate.height()-1;i>=0;i--){//行
+        if(num == 6 || exit1)
+        {
+            break;
+        }
+        for(int l = 0;l< ImageHadle.width - 2*(x);l++) {
+          if(ImageHadle.getPointColorFromMat(greenMask,l,i) == 0xFFFFFFFF) {
+
+             if( isGreen(greenMask,l,i,1) == 6) {
+
+
+                 if(!firstWrite){
+                     firstWrite =true;
+                 }
+                 addPos += i;
+                 num++;
+                 break;
+             }
+          }else {
+              if(firstWrite){
+                  exit1 = true;
+                  break;
+              }
+          }
+        }
+    }
+        MainFunction.cGLinepoint = new Point( x, y+(addPos/num));
+
+
+        greenMask.release();
+        bitmap.recycle();
+
+
+    }
+
+    public static int newGreenPostison() {
+        int x = 0;
+        int wid = ImageHadle.width - (2*cGLinepoint.x);
+        //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
+        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, wid ,1);
+        if (areaBitmap == null) return -1;
+
+        Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
+        //定义绿色范围
+        Scalar lowerGreen = new Scalar(35,60,70);
+        Scalar upperGreen = new Scalar(75,255,255);
+
+        Mat greenMask = ImageHadle.filterByHSV(mat, lowerGreen, upperGreen);
+    /*    MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
+
+     */   mat.release(); /*   MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+        Bitmap areaBitmap1 = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, sWToTrsf(785), (sizdToTrsf(5)+1)/2);
+        MainActivity.imageHadle.saveBitmap(areaBitmap1);
+       */ if (greenMask == null || greenMask.empty()) {
+            areaBitmap.recycle();
+            greenMask.release();
+            return -1;
+        }
+        if(weithState)
+        {
+
+            while (x <= wid-1) {//左边网友变
+                if (ImageHadle.getPointColorFromMat(greenMask, x, 0) == 0xFFFFFFFF)
+                {
+                    int i =isGreen(greenMask,x, 0,1);
+                    if(i == 6)
+                    {
+                        break;
+                    }
+                    else {
+                        x=x+i-1;
+                    }
+                }
+                x++;
+            }
+            int m = x;
+            x = wid -1;
+            while (x > 0) {//右边王左边
+                if (ImageHadle.getPointColorFromMat(greenMask, x,0) == 0xFFFFFFFF){
+                    int i =isGreen(greenMask,x, 0,-1);
+                    if(i == 6)
+                    {
+                        break;
+                    }
+                    else {
+                        x=x-i+1;
+                    }
+                }
+                x--;
+            }
+            weightOfGreen = x-m;
+            weithState = false;
+
+            greenMask.release();
+            areaBitmap.recycle();
+            return (weightOfGreen/2) + m + cGLinepoint.x;
+        }
+
+        while (x <= wid-1) {
+            if (ImageHadle.getPointColorFromMat(greenMask, x,0) == 0xFFFFFFFF){
+                int i =isGreen(greenMask, x,0,1);
+                if(i == 6)
+                {
+                    break;
+                }
+                else {
+                    x=x+i-1;
+                }
+            }
+            x++;
+        }
+
+        greenMask.release();
+        areaBitmap.recycle();
+        return (weightOfGreen/2) + x + cGLinepoint.x;//返回率条中心坐标
+    }
+
+
+
+    public static int newCursorPoint() {
+
+        int wid = ImageHadle.width - (2*cGLinepoint.x);
+        //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
+        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, wid ,1);
+        if (areaBitmap == null) return -1;
+
+        Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
+        //定义绿色范围
+        Scalar lowerYellow = new Scalar(80,30,200);
+        Scalar upperYellow = new Scalar(100,150,255);
+        Mat yellowMask = ImageHadle.filterByHSV(mat, lowerYellow, upperYellow);
+        //MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
+
+
+        int x = 0;
+
+         if (yellowMask == null || yellowMask.empty()) {
+             mat.release();
+            areaBitmap.recycle();
+            yellowMask.release();
+
+            return -1;
+        }
+
+        while (x <= wid-1) {
+            if (ImageHadle.getPointColorFromMat(yellowMask, x, 0) == 0xFFFFFFFF) break;
+            x++;
+        }
+
+        mat.release();
+        areaBitmap.recycle();
+        yellowMask.release();
+        return x + cGLinepoint.x;//返回光标x
+    }
 }

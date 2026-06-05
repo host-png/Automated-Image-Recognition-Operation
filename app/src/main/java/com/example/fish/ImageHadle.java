@@ -158,6 +158,19 @@ public class ImageHadle {
         fullBmp.recycle();
         return areaBmp;
     }
+    public Bitmap getAreaBitmap(Bitmap srcBitmap,int x, int y, int width, int height) {//XY左上角
+        if (srcBitmap == null) return null;
+        Bitmap fullBmp = srcBitmap;
+        // 边界防越界
+        x = Math.max(0, x);//小于0变0
+        y = Math.max(0, y);//小于0变0
+        width = Math.min(width, fullBmp.getWidth() - x);//如果越界了就取没越的部分
+        height = Math.min(height, fullBmp.getHeight() - y);
+        // 裁剪
+        Bitmap areaBmp = Bitmap.createBitmap(fullBmp, x, y, width, height);
+        // 外部传入的原图不在这里recycle，由调用方自己管理回收
+        return areaBmp;
+    }
 
 
     // 直接获取单个坐标颜色值
@@ -281,6 +294,40 @@ public class ImageHadle {
             return new Mat();
         }
     }
+
+    /**
+     * 输入ARGB/Bitmap(RGBA内存排布) → 返回 BGR 3通道Mat
+     */
+    public static Mat bitmapToBGRMat(Bitmap srcBmp){
+        // 先用你原有方法转 RGBA Mat
+        Mat rgbaMat = bitmapToMat(srcBmp);
+        Mat bgrMat = new Mat();
+        // RGBA → BGR 标准转换
+        Imgproc.cvtColor(rgbaMat, bgrMat, Imgproc.COLOR_RGBA2BGR);
+
+        rgbaMat.release();//释放中间RGBA
+        return bgrMat;
+    }
+    /**
+     * BGR三通道Mat + HSV上下阈值 → 返回筛选掩码Mat(符合颜色=255白，其余=0黑)
+     * @param bgrMat 输入：BGR格式3通道Mat
+     * @param lower HSV下限Scalar
+     * @param upper HSV上限Scalar
+     * @return 单通道二值掩码Mat
+     */
+    public static Mat filterByHSV(Mat bgrMat, Scalar lower, Scalar upper){
+        Mat hsv = new Mat();
+        //BGR转HSV
+        Imgproc.cvtColor(bgrMat, hsv, Imgproc.COLOR_BGR2HSV);
+
+        Mat mask = new Mat();
+        //区间筛选
+        Core.inRange(hsv, lower, upper, mask);
+
+        hsv.release();
+        return mask;
+    }
+
 
     //opencv下面是
     // Bitmap转Mat
@@ -505,6 +552,40 @@ public class ImageHadle {
     }
         return null;
 
+    }
+
+    public static Point uiLineSearch(Bitmap srcFull, Mat mat, Point cenPos, int scope, int thresh){
+        if(srcFull == null) return null;
+        Mat movemat;
+        Bitmap areaBmp;
+        try{
+            int maxCo = scope - mat.cols();
+            int maxRo = scope - mat.rows();
+            for (int co = 0; co < maxCo; co++){
+                for (int ro = 0; ro < maxRo; ro++){
+                    int clipX = cenPos.x - (scope/2) + co;
+                    int clipY = cenPos.y - (scope/2) + ro;
+                    areaBmp = Bitmap.createBitmap(srcFull, clipX, clipY, mat.cols(), mat.rows());
+                    movemat = binarizeToMat(areaBmp, thresh);
+
+                    if( matchSimilarity(movemat,mat) > 0.6){
+                        return new Point(clipX, clipY);
+                    }
+                    //释放
+                    if (areaBmp != null) {
+                        areaBmp.recycle();
+                        areaBmp = null;
+                    }
+                    if (movemat != null) {
+                        movemat.release();
+                        movemat = null;
+                    }
+                }
+            }
+        }finally {
+            //外部传入bitmap不由本方法回收，去掉allScreen.recycle()
+        }
+        return null;
     }
     public static Point yunuiLineSearch(Mat mat,Point cenPos,int scope,int thresh){
 

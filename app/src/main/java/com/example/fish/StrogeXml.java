@@ -18,10 +18,11 @@ public class StrogeXml {
     // XML 文件名
     private static final String XML_FILE = "pos.xml";
 
+
     /**
-     * 写入两组坐标 (x1,y1) (x2,y2)
+     * 写入三组坐标 (x1,y1)(x2,y2)(x3,y3)
      */
-    public static void writeTwoPoint(Context context, int x1, int y1, int x2, int y2) {
+    public static void writePoint(Context context, int x1, int y1, int x2, int y2, int x3, int y3) {
         try {
             DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             Document doc = builder.newDocument();
@@ -48,6 +49,16 @@ public class StrogeXml {
             group2.appendChild(g2y);
             root.appendChild(group2);
 
+            // 新增第三组坐标
+            Element group3 = doc.createElement("group3");
+            Element g3x = doc.createElement("x");
+            g3x.setTextContent(String.valueOf(x3));
+            Element g3y = doc.createElement("y");
+            g3y.setTextContent(String.valueOf(y3));
+            group3.appendChild(g3x);
+            group3.appendChild(g3y);
+            root.appendChild(group3);
+
             // 写入文件（通过 context 调用）
             FileOutputStream fos = context.openFileOutput(XML_FILE, Context.MODE_PRIVATE);
             OutputStreamWriter writer = new OutputStreamWriter(fos);
@@ -60,13 +71,12 @@ public class StrogeXml {
             e.printStackTrace();
         }
     }
-
     /**
-     * 读取两组坐标
-     * @return 二维数组 {{x1,y1}, {x2,y2}}
+     * 读取三组坐标
+     * @return 二维数组 {{x1,y1}, {x2,y2},{x3,y3}}
      */
-    public static int[][] readTwoPoint(Context context) {
-        int[][] points = {{0, 0}, {0, 0}};
+    public static int[][] readPoint(Context context) {
+        int[][] points = {{0, 0}, {0, 0},{0,0}};
         try {
             FileInputStream fis = context.openFileInput(XML_FILE);
             InputSource source = new InputSource(new InputStreamReader(fis));
@@ -82,6 +92,11 @@ public class StrogeXml {
             Element g2 = (Element) doc.getElementsByTagName("group2").item(0);
             points[1][0] = Integer.parseInt(g2.getElementsByTagName("x").item(0).getTextContent());
             points[1][1] = Integer.parseInt(g2.getElementsByTagName("y").item(0).getTextContent());
+
+            //读取第三组
+            Element g3 = (Element) doc.getElementsByTagName("group3").item(0);
+            points[2][0] = Integer.parseInt(g3.getElementsByTagName("x").item(0).getTextContent());
+            points[2][1] = Integer.parseInt(g3.getElementsByTagName("y").item(0).getTextContent());
 
             fis.close();
         } catch (Exception e) {

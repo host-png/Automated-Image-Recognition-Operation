@@ -19,6 +19,7 @@ import android.widget.ImageButton;
 import android.widget.Toast;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
 
 
 import java.io.File;
@@ -308,20 +309,44 @@ public class FloatWindow {
                 Log.i(TAG, "启动钓鱼运行线程");
 
 
-                if(StrogeXml.readTwoPoint(context)[0][0] == 0) {
+                if(StrogeXml.readPoint(context)[0][0] == 0) {
                     xmlState = true;
                 }
                 else {
-                    int point[][] = StrogeXml.readTwoPoint(context);
+                    int point[][] = StrogeXml.readPoint(context);
                     MainFunction.hookPoint = new Point(point[0][0],point[0][1]);
                     MainFunction.fishStaPoint = new Point(point[1][0],point[1][1]);
-                    MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
-                            MainFunction.fishStaPoint.y + getGreenSizPo());
+                    MainFunction.cGLinepoint = new Point( point[2][0],point[2][1]);
                     xmlState =false;
 
                 }
+             /*   Bitmap all = MainActivity.imageHadle.getScreenBitmap();
+                MainFunction.initSearchTheGreenPosHsv(all);
+                int wid = ImageHadle.width - (2*MainFunction.cGLinepoint.x);
+                //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
+                Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.cGLinepoint.x, MainFunction.cGLinepoint.y, wid ,1);
+                if (areaBitmap == null)
+                {
 
-           /*     Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.cGLinepoint.x, MainFunction.cGLinepoint.y, MainFunction.sWToTrsf(785), MainFunction.sizdToTrsf(5));
+                }else {
+                    Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
+                    //定义绿色范围
+                    Scalar lowerYellow = new Scalar(80,30,200);
+                    Scalar upperYellow = new Scalar(100,150,255);
+                    Mat yellowMask = ImageHadle.filterByHSV(mat, lowerYellow, upperYellow);
+                    MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(yellowMask));
+
+                }*/
+
+
+
+
+
+
+           /*     Bitmap all = MainActivity.imageHadle.getScreenBitmap();
+                MainFunction.initSearchTheGreenPosHsv(all);
+                Log.i("test", MainFunction.cGLinepoint.y +" "+ String.valueOf(MainFunction.cGLinepoint.x));
+      */     /*     Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.cGLinepoint.x, MainFunction.cGLinepoint.y, MainFunction.sWToTrsf(785), MainFunction.sizdToTrsf(5));
                 if (areaBitmap == null){
 
                 }else {
@@ -381,27 +406,28 @@ public class FloatWindow {
                                     if(!MainActivity.bigAre) {
                                         MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                 57*ImageHadle.height/1080*2,200);
-                                    if(MainFunction.hookPoint == null)
-                                    {
-                                        setTipsText("这一轮失败5s后进入下一轮");
-                                        sleep(5000);
-                                        setTipsText("..扫描钩子(耐心等待)");
-                                    }
+                                            if(MainFunction.hookPoint == null)
+                                            {
+                                                setTipsText("这一轮失败2s后进入下一轮");
+                                                sleep(1000);
+                                                setTipsText("..扫描钩子(耐心等待)");
+                                            }
                                     }else {
-                                        MainFunction.hookPoint= ImageHadle.yunuiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
-                                                57*ImageHadle.height/1080*2,200);//云扩大范围
-                                        if(MainFunction.hookPoint == null)
-                                        {
-                                            setTipsText("这一轮失败5s后进入下一轮");
-                                            sleep(5000);
-                                            setTipsText("..扫描钩子(耐心等待)");
-                                        }
+
+                                            MainFunction.hookPoint= ImageHadle.yunuiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                                                    57*ImageHadle.height/1080*2,200);//云扩大范围
+                                            if(MainFunction.hookPoint == null)
+                                            {
+                                                setTipsText("这一轮失败2s后进入下一轮");
+                                                sleep(2000);
+                                                setTipsText("..扫描钩子(耐心等待)");
+                                            }
                                     }
                                        }
 
                                     boolean stateWithserch = true;
                                     setTipsText("扫到钩子，开始点击");
-                                    if(MainActivity.bigAre)
+                                  /*  if(MainActivity.bigAre)
                                     {  clickStablePostion();
                                         clickStablePostion();
                                         sleep(2000);
@@ -414,7 +440,7 @@ public class FloatWindow {
                                         setTipsText("鱼鳔没了没事它还在与之前截的图比对，除非三次进行了点击否则别关掉程序");
                                         sleep(10000);
                                         //
-                                    }
+                                    }*/
                                 sleep(500);
                                     while(stateWithserch)
                                     {
@@ -423,21 +449,35 @@ public class FloatWindow {
                                         if(MainFunction.isHook() == false){
                                             setTipsText("扫描鱼标");
                                             if(!MainActivity.bigAre) {
+
                                                 MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
                                                         new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
                                                         60*ImageHadle.height/1080*2,140);
 
                                             }else {
+
                                                 MainFunction.fishStaPoint = ImageHadle.yunuiLineSearch(MainFunction.fishsate,
                                                         new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
                                                         60*ImageHadle.height/1080*2,140);
+
+                                             //  MainFunction.initSearchTheGreenPosHsv(all);
                                             }
                                            if(MainFunction.fishStaPoint != null)
                                             {
-                                                MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
+                                               /* MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
                                                         MainFunction.fishStaPoint.y + getGreenSizPo());
-                                                StrogeXml.writeTwoPoint(context,MainFunction.hookPoint.x,MainFunction.hookPoint.y,
-                                                                        MainFunction.fishStaPoint.x,MainFunction.fishStaPoint.y);
+                                           */
+                                                if(MainFunction.isFishStae()){
+                                                    Bitmap all = MainActivity.imageHadle.getScreenBitmap();
+
+                                                    MainFunction.initSearchTheGreenPosHsv(all);
+                                                    all.recycle();
+                                                }
+
+
+                                                StrogeXml.writePoint(context,MainFunction.hookPoint.x,MainFunction.hookPoint.y,
+                                                                        MainFunction.fishStaPoint.x,MainFunction.fishStaPoint.y,
+                                                                        MainFunction.cGLinepoint.x,MainFunction.cGLinepoint.y);
                                                 setTipsText("ok所有图标均已扫完");
                                                 sleep(500);
                                                 xmlState = false;
@@ -464,7 +504,7 @@ public class FloatWindow {
                                             clickStablePostion();
                                             sleep(SetingTheParmer.clickTime);
                                         }else if(MainFunction.isFishStae()){
-                                            /*MainFunction.addERROR = 0;
+                                         /*   MainFunction.addERROR = 0;
                                             MainFunction.lastError = 0;*/
                                             mainState = 1;
 
@@ -499,7 +539,6 @@ public class FloatWindow {
                             Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
                     }).start();
-
             }
             else {
                 threadIsRunning1  = false;

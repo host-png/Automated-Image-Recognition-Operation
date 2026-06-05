@@ -238,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
         FloatWindow.xmlState = false;
 
         // 3. 清空本地XML存储的坐标（覆盖写入0值）
-        StrogeXml.writeTwoPoint(this, 0, 0, 0, 0);
+        StrogeXml.writePoint(this, 0, 0, 0, 0,0,0);
 
         // 可选：弹出Toast提示
         android.widget.Toast.makeText(this, "坐标已重置，下次运行将重新扫描", android.widget.Toast.LENGTH_SHORT).show();
