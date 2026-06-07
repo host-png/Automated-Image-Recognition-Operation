@@ -28,14 +28,19 @@ public class SetingTheParmer {
     public static int allTheardTime = 23;//全局刷新率用户输入帧率，自动转换成时间
 
     public static int expendTheSechArea = 2;
+    public static int stateDeviceModel = 1;
+
+    // 在 SetingTheParmer 类内添加
+    public static int useLeftRightControl = 0; // 0=关闭  1=开启左右控制键
 
 
     public static void saveFile(Context context) {
-        SetingTheParmer.writePoint(context,SetingTheParmer.clickTime,allTheardTime,expendTheSechArea);
+        SetingTheParmer.writePoint(context,SetingTheParmer.clickTime,allTheardTime,expendTheSechArea, String.valueOf(stateDeviceModel), String.valueOf(useLeftRightControl));
     }
 
 
-    public static void writePoint(Context context, int x1, int y1, int x2) {//县高出一个文件来，然后把文件里的参数天好最后读取
+
+    public static void writePoint(Context context, int x1, int y1, int x2,String modeStr,String leftRightCtrlStr) {//县高出一个文件来，然后把文件里的参数天好最后读取
         try {
             DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             Document doc = builder.newDocument();
@@ -59,11 +64,29 @@ public class SetingTheParmer {
             group2.appendChild(g2x);
             root.appendChild(group2);
 
+
+            Element modeNode = doc.createElement("modeConfig");
+            Element runModeNode = doc.createElement("runMode");
+            runModeNode.setTextContent(modeStr);
+            modeNode.appendChild(runModeNode);
+            root.appendChild(modeNode);
+
+
+
+            // ========== 新增：左右控制键配置节点 ==========
+            Element ctrlNode = doc.createElement("leftRightControl");
+            Element ctrlState = doc.createElement("ctrlState");
+            ctrlState.setTextContent(leftRightCtrlStr);
+            ctrlNode.appendChild(ctrlState);
+            root.appendChild(ctrlNode);
+
             // 写入文件（通过 context 调用）
             FileOutputStream fos = context.openFileOutput(XML_FILE, Context.MODE_PRIVATE);
             OutputStreamWriter writer = new OutputStreamWriter(fos);
             Transformer transformer = TransformerFactory.newInstance().newTransformer();
             transformer.transform(new DOMSource(doc), new StreamResult(writer));
+
+
 
             writer.close();
             fos.close();
@@ -94,6 +117,14 @@ public class SetingTheParmer {
             Element mainTin = (Element) doc.getElementsByTagName("mainTinteface").item(0);
             data[2] = Integer.parseInt(mainTin.getElementsByTagName("expendTheSechArea").item(0).getTextContent());
 
+            //【新增读取运行模式】
+            Element modeConfig = (Element) doc.getElementsByTagName("modeConfig").item(0);
+            String numText = modeConfig.getElementsByTagName("runMode").item(0).getTextContent();
+            stateDeviceModel = Integer.parseInt(numText);
+            // 新增：读取左右控制键状态 ==========
+            Element ctrlConfig = (Element) doc.getElementsByTagName("leftRightControl").item(0);
+            String ctrlText = ctrlConfig.getElementsByTagName("ctrlState").item(0).getTextContent();
+            useLeftRightControl = Integer.parseInt(ctrlText);
             fis.close();
         } catch (Exception e) {
             //文件不存在 保持默认值
@@ -108,7 +139,9 @@ public class SetingTheParmer {
         clickTime = arr[0];
         allTheardTime = arr[1];
         expendTheSechArea = arr[2];
+
     }
 
+    //【快捷修改并保存模式】
 
 }

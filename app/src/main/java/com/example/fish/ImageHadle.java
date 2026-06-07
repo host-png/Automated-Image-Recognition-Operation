@@ -515,6 +515,7 @@ public class ImageHadle {
         }
         Mat movemat;
         Bitmap areaBmp;
+        float a = 0;
         try{
         for (int co = 0;co<scope-mat.cols();co++)//列
         {
@@ -528,6 +529,11 @@ public class ImageHadle {
 
               //  Log.v("xianhgsoo", "fishstaok");
 
+             /*   float b= matchSimilarity(movemat,mat);
+                if(b>a){
+                    Log.i("xd", String.valueOf(b));
+                    a =b;
+                }*/
                 if( matchSimilarity(movemat,mat) >0.6)
                {
                    Point point = new Point(cenPos.x-(scope/2)+co,cenPos.y-(scope/2) +ro);
@@ -628,21 +634,93 @@ public class ImageHadle {
 
                      Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
 */
-                    b =matchSimilarity(movemat,mat);
+                /*    b =matchSimilarity(movemat,mat);
                  if(k < b)
                  {
                      k= b;
                      Log.v("xiangsi", String.valueOf(k));
 
-                 }
+                 }*/
 
-                    if( b>0.7)
+                    if( matchSimilarity(movemat,mat)>0.6)
                     {
                         areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
                                 , mat.cols(),mat.rows());
-                        MainActivity.imageHadle.saveBitmap(areaBmp);
+                     //   MainActivity.imageHadle.saveBitmap(areaBmp);
 
                         Point point = new Point(scanLeft+co,scanTop +ro);
+                        return point;
+                    }
+                    if (areaBmp != null) {
+                        areaBmp.recycle();
+                        areaBmp = null;
+                    }
+                    if (movemat != null) {
+                        movemat.release();
+                        movemat = null;
+                    }
+
+                }
+            }
+        } finally {
+            // 最终释放整屏图
+            if (allScreen != null) {
+                allScreen.recycle();
+            }
+        }
+        return null;
+
+    }
+
+    public static Point cutSelf(Mat mat,Point leftTop,Point rightDown,int thresh){//
+
+       // scope*=SetingTheParmer.expendTheSechArea;
+        // 1. 计算扫描区域左上角 & 做边界限制（核心修复：防止 x/y 负数）
+
+        // 强制坐标 >= 0
+
+    /*    Mat cutImage = bitmapToMat(MainActivity.imageHadle.getAreaBitmap(scanLeft,scanTop ,scanfRight-scanLeft,scanDown-scanTop));
+        MainActivity.imageHadle.saveBitmap(matToBitmap(cutImage));
+    */    //县固定列扫描行数
+        Log.d("cc", "mat宽度cols="+mat.cols()+" 高度rows="+mat.rows());
+        Log.d("MatSizeCheck", "mat宽度cols=");
+
+        Bitmap allScreen = MainActivity.imageHadle.getScreenBitmap();
+        if (allScreen == null) {
+            return null;
+        }
+
+        Mat movemat;
+        Bitmap areaBmp;
+        float k = 0,b =0;
+        try{
+            for (int co = 0;co<rightDown.x-leftTop.x - mat.width();co++)//列
+            {
+                for (int ro = 0;ro<rightDown.y-leftTop.y - mat.height();ro++)//行
+                {
+
+                    areaBmp = Bitmap.createBitmap(allScreen, leftTop.x + co,leftTop.y + ro
+                            , mat.cols(),mat.rows());
+                    movemat =  binarizeToMat(areaBmp,thresh);
+                  /*  MainActivity.imageHadle.getAreaBitmap();
+
+                     Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
+*/
+                    b =matchSimilarity(movemat,mat);
+                    if(k < b)
+                    {
+                        k= b;
+                        Log.v("xiangsi", String.valueOf(k));
+
+                    }
+
+                    if( matchSimilarity(movemat,mat)>0.55)
+                    {
+                        areaBmp = Bitmap.createBitmap(allScreen, leftTop.x + co,leftTop.y + ro
+                                , mat.cols(),mat.rows());
+                      MainActivity.imageHadle.saveBitmap(areaBmp);
+
+                        Point point = new Point(leftTop.x + co,leftTop.y + ro);
                         return point;
                     }
                     if (areaBmp != null) {

@@ -18,7 +18,7 @@ public class StrogeXml {
     // XML 文件名
     private static final String XML_FILE = "pos.xml";
 
-
+    private static final String RLCON_XML = "lefrigpos.xml";
     /**
      * 写入三组坐标 (x1,y1)(x2,y2)(x3,y3)
      */
@@ -103,5 +103,84 @@ public class StrogeXml {
             // 文件不存在/解析失败，返回默认 0
         }
         return points;
+    }
+
+    //==================== 新增：左右控制按钮坐标读写 ====================
+    /**
+     * 写入 左按钮、右按钮 中心坐标
+     * @param context 上下文
+     * @param leftX 左按钮X
+     * @param leftY 左按钮Y
+     * @param rightX 右按钮X
+     * @param rightY 右按钮Y
+     */
+    public static void writeLeftRightPos(Context context, int leftX, int leftY, int rightX, int rightY) {
+        try {
+            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = builder.newDocument();
+            Element root = doc.createElement("root");
+            doc.appendChild(root);
+
+            // 左侧按钮坐标
+            Element leftBtn = doc.createElement("leftBtn");
+            Element lx = doc.createElement("x");
+            lx.setTextContent(String.valueOf(leftX));
+            Element ly = doc.createElement("y");
+            ly.setTextContent(String.valueOf(leftY));
+            leftBtn.appendChild(lx);
+            leftBtn.appendChild(ly);
+            root.appendChild(leftBtn);
+
+            // 右侧按钮坐标
+            Element rightBtn = doc.createElement("rightBtn");
+            Element rx = doc.createElement("x");
+            rx.setTextContent(String.valueOf(rightX));
+            Element ry = doc.createElement("y");
+            ry.setTextContent(String.valueOf(rightY));
+            rightBtn.appendChild(rx);
+            rightBtn.appendChild(ry);
+            root.appendChild(rightBtn);
+
+            // 写入 lefrigpos.xml
+            FileOutputStream fos = context.openFileOutput(RLCON_XML, Context.MODE_PRIVATE);
+            OutputStreamWriter writer = new OutputStreamWriter(fos);
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+
+            writer.close();
+            fos.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 读取 左、右按钮坐标
+     * @return 二维数组 {{左X,左Y}, {右X,右Y}}，默认值都是 0
+     */
+    public static int[][] readLeftRightPos(Context context) {
+        // 默认坐标 {左X,左Y} , {右X,右Y}
+        int[][] lrPos = {{0, 0}, {0, 0}};
+        try {
+            FileInputStream fis = context.openFileInput(RLCON_XML);
+            InputSource source = new InputSource(new InputStreamReader(fis));
+            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(source);
+            doc.getDocumentElement().normalize();
+
+            // 读取左侧按钮
+            Element leftBtn = (Element) doc.getElementsByTagName("leftBtn").item(0);
+            lrPos[0][0] = Integer.parseInt(leftBtn.getElementsByTagName("x").item(0).getTextContent());
+            lrPos[0][1] = Integer.parseInt(leftBtn.getElementsByTagName("y").item(0).getTextContent());
+
+            // 读取右侧按钮
+            Element rightBtn = (Element) doc.getElementsByTagName("rightBtn").item(0);
+            lrPos[1][0] = Integer.parseInt(rightBtn.getElementsByTagName("x").item(0).getTextContent());
+            lrPos[1][1] = Integer.parseInt(rightBtn.getElementsByTagName("y").item(0).getTextContent());
+
+            fis.close();
+        } catch (Exception e) {
+            // 文件不存在/解析异常，保留默认 0
+        }
+        return lrPos;
     }
 }

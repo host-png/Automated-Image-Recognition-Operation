@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private static boolean mScreenRecordAuth = false;
     public static int width,height,dpi;
 
-    public static boolean bigAre = false;
+    public static int Arestate = 1;//1手机2云异环3平板
     // 权限状态文本控件
     private TextView tvPermissionStatus;
     @Override
@@ -103,27 +103,51 @@ public class MainActivity extends AppCompatActivity {
             requestScreenRecordPermission();
 
             Button btnExpand = findViewById(R.id.areBig);
+
+            SetingTheParmer.readPoint(context);
+//========新增初始化按钮文字========
+            int mode = SetingTheParmer.stateDeviceModel;
+            if(mode == 1){
+                btnExpand.setText("更改为云异环模式");
+            }else if(mode ==2){
+                btnExpand.setText("更改为框选模式");
+            }else if(mode ==3){
+                btnExpand.setText("更改为手机模式");
+            }
+
             btnExpand.setOnClickListener(v -> {
-              if(!bigAre)
-              {
-                  btnExpand.setText("恢复搜索范围");
-                  bigAre= true;
-                  Toast.makeText(MainActivity.this, "已扩大搜索范围,并且自动重置坐标", Toast.LENGTH_SHORT).show();
-                  resetAllPointData();
-                  updatePermissionText();
-              }else {
-                  btnExpand.setText("扩大搜索范围(长按设置扩大倍率)");
-                  bigAre = false;
-                  Toast.makeText(MainActivity.this, "已恢复搜索范围，并且自动重置坐标", Toast.LENGTH_SHORT).show();
-                  resetAllPointData();
-                  updatePermissionText();
+                if(SetingTheParmer.stateDeviceModel ==3)
+                {
 
-              }
+                    btnExpand.setText("更改为云异环模式");
+                    Toast.makeText(MainActivity.this, "已扩大搜索范围,并且自动重置坐标", Toast.LENGTH_SHORT).show();
+                    SetingTheParmer.stateDeviceModel = 1;
 
+                }else if(SetingTheParmer.stateDeviceModel == 2){
+
+                    btnExpand.setText("更改为手机模式");
+                    Toast.makeText(MainActivity.this, "已恢复搜索范围，并且自动重置坐标", Toast.LENGTH_SHORT).show();
+                    SetingTheParmer.stateDeviceModel = 3;
+
+                }else if(SetingTheParmer.stateDeviceModel ==1){
+
+                    btnExpand.setText("更改为框选模式");
+                    Toast.makeText(MainActivity.this, "已恢复搜索范围，并且自动重置坐标", Toast.LENGTH_SHORT).show();
+                    SetingTheParmer.stateDeviceModel = 2;
+
+                }
+                resetAllPointData();
+                SetingTheParmer.saveFile(context);
+                updatePermissionText();
                      });
             // ==========新增长按：弹出倍率修改弹窗==========
             btnExpand.setOnLongClickListener(v->{
-                showExpandSettingDialog();
+                if(SetingTheParmer.stateDeviceModel ==3){
+                    showLeftRightControlDialog();
+                }else {
+                    showExpandSettingDialog();
+                }
+
                 return true;
             });
 
@@ -145,6 +169,55 @@ public class MainActivity extends AppCompatActivity {
 // 5. 显示弹窗
         dialog.show();
 
+    }
+
+
+    /**
+     * 模式3 专属弹窗：选择是否开启 框选左右控制键
+     */
+    private void showLeftRightControlDialog() {
+        Context app = getApplicationContext();
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(app);
+        builder.setTitle("框选控制设置");
+
+        // 拼接提示文本 + 当前状态
+        String currentStatus = SetingTheParmer.useLeftRightControl == 1 ? "当前：已开启" : "当前：已关闭";
+        String msg = "是否开启框选左右控制按键功能？\n" + currentStatus;
+        builder.setMessage(msg);
+
+        android.app.AlertDialog dialog = builder.create();
+
+        // 适配悬浮窗窗口类型，和另一个弹窗保持一致
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
+        WindowManager.LayoutParams lp = dialog.getWindow().getAttributes();
+        lp.type = type;
+        dialog.getWindow().setAttributes(lp);
+
+        // 开启按钮
+        dialog.setButton(android.app.Dialog.BUTTON_POSITIVE, "开启", (d, which) -> {
+            SetingTheParmer.useLeftRightControl = 1;
+            SetingTheParmer.saveFile(context);
+            Toast.makeText(this, "已开启左右控制键", Toast.LENGTH_SHORT).show();
+            resetAllPointData();
+            updatePermissionText();
+        });
+        // 关闭按钮
+        dialog.setButton(android.app.Dialog.BUTTON_NEGATIVE, "关闭", (d, which) -> {
+            SetingTheParmer.useLeftRightControl = 0;
+            SetingTheParmer.saveFile(context);
+            Toast.makeText(this, "已关闭左右控制键", Toast.LENGTH_SHORT).show();
+            resetAllPointData();
+            updatePermissionText();
+        });
+        // 新增取消按钮（不做任何修改，直接关闭弹窗）
+        dialog.setButton(android.app.Dialog.BUTTON_NEUTRAL, "取消", (d, which) -> {
+            d.dismiss();
+        });
+
+        dialog.setCancelable(true);
+        dialog.show();
     }
 
     // 检测无障碍权限
@@ -202,13 +275,25 @@ public class MainActivity extends AppCompatActivity {
     // 这里复用你 ScreenRecordService 的授权状态，可根据自身逻辑修改
 
 
+
     private void updatePermissionText(){
         boolean floatPerm = isFloatWindowEnabled();
         boolean accessPerm = isAccessibilityEnabled();
         boolean recordPerm = mScreenRecordAuth;
 
-        String content = String.format("当前权限状态：悬浮窗%s 无障碍%s 录屏%s\n 当前搜索范围扩大状态%s",
-                floatPerm, accessPerm, recordPerm,bigAre);
+        SetingTheParmer.readPoint(context);
+        String state = "";
+        if( SetingTheParmer.stateDeviceModel== 1)
+        {
+            state = "手机";
+        } else if (SetingTheParmer.stateDeviceModel== 2) {
+            state = "云异环";
+
+        } else if (SetingTheParmer.stateDeviceModel == 3) {
+            state = "框选";
+        }
+        String content = String.format("当前权限状态：悬浮窗%s 无障碍%s 录屏%s\n 当前模式："+ state,
+                floatPerm, accessPerm, recordPerm);
         tvPermissionStatus.setText(content);
     }
     private void joinQQGroup() {

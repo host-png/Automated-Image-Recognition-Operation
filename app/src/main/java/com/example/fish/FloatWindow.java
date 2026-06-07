@@ -4,6 +4,10 @@ import static java.lang.Thread.sleep;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.os.Build;
@@ -222,7 +226,196 @@ public class FloatWindow {
         dialog.show();
     }
 
+    private View selectOverlay;
 
+    private WindowManager.LayoutParams selectLp;
+    private float selStartX,selStartY,selEndX,selEndY;
+    //回调接口
+    public interface SelectCallback{
+        void onSelect(int left,int top,int right,int bottom);
+    }
+    //临时保存当前等待回调
+    private SelectCallback tempCb;
+
+    /**
+     * 外部/本类任意位置调用：唤起框选
+     * @param callback 框选确定后返回坐标
+     */
+    public void showSelectOverlay(SelectCallback callback){
+        if(selectOverlay!=null && selectOverlay.getParent()!=null) return;
+        //接收本次回调
+        this.tempCb = callback;
+
+        //初始化坐标=0，默认全屏灰色
+        selStartX = 0;
+        selStartY = 0;
+        selEndX = 0;
+        selEndY = 0;
+
+        // 1、拿到设备物理全屏尺寸，彻底避开系统裁切
+        Point realScreen = new Point();
+        mWindowManager.getDefaultDisplay().getRealSize(realScreen);
+
+//final int SCREEN_W = realScreen.y;
+//final int SCREEN_H = realScreen.x;
+        // 平板适配：全局对调宽高，统一坐标系
+        int[] screenSize = new int[]{realScreen.x, realScreen.y};
+
+        final int[] WH = screenSize;
+
+        selectOverlay = new View(appContext){
+            final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            {
+                maskPaint.setColor(0x99000000);
+                linePaint.setColor(Color.WHITE);
+                linePaint.setStrokeWidth(3f);
+                linePaint.setStyle(Paint.Style.STROKE);
+            }
+
+            // 强制View测量尺寸 = 真实物理屏幕
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                setMeasuredDimension(WH[0], WH[1]);
+            }
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                super.onDraw(canvas);
+                int l = (int)Math.min(selStartX,selEndX);
+                int t = (int)Math.min(selStartY,selEndY);
+                int r = (int)Math.max(selStartX,selEndX);
+                int b = (int)Math.max(selStartY,selEndY);
+
+                Path path = new Path();
+                // 固定真实屏幕宽高绘制，不再依赖getWidth()
+                path.addRect(0,0,WH[0],WH[1],Path.Direction.CW);
+                Path rectPath = new Path();
+                rectPath.addRect(l,t,r,b,Path.Direction.CW);
+                path.op(rectPath, Path.Op.DIFFERENCE);
+                canvas.drawPath(path,maskPaint);
+                canvas.drawRect(l,t,r,b,linePaint);
+            }
+
+            @Override
+            public boolean onTouchEvent(MotionEvent ev) {
+                // 使用屏幕绝对坐标，框选坐标和画面坐标完全一致无偏移
+                float x = ev.getRawX();
+                float y = ev.getRawY();
+                switch (ev.getAction()){
+                    case MotionEvent.ACTION_DOWN:
+                        selStartX=x;selStartY=y;selEndX=x;selEndY=y;
+                        invalidate();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        selEndX=x;selEndY=y;
+                        invalidate();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+                        int l = (int)Math.min(selStartX,selEndX);
+                        int t = (int)Math.min(selStartY,selEndY);
+                        int r = (int)Math.max(selStartX,selEndX);
+                        int b = (int)Math.max(selStartY,selEndY);
+
+                        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(appContext);
+                        builder.setTitle("确认选区？");
+                        //确定：先关弹窗、移除遮罩，延时再回调，解决截图遮挡
+                        builder.setPositiveButton("确定",(di,w)->{
+                            ((android.app.AlertDialog)di).dismiss();
+                            if(selectOverlay != null && selectOverlay.getParent() != null){
+                                mWindowManager.removeView(selectOverlay);
+                            }
+                            selectOverlay = null;
+                            new android.os.Handler().postDelayed(()->{
+                                if(tempCb != null){
+                                    tempCb.onSelect(l,t,r,b);
+                                }
+                                tempCb = null;
+                            },80);
+                        });
+                        //重选：坐标归零+刷新=变回全屏灰色
+                        builder.setNegativeButton("重选",(di,w)->{
+                            selStartX = 0;
+                            selStartY = 0;
+                            selEndX = 0;
+                            selEndY = 0;
+                            invalidate();
+                        });
+                        builder.setNeutralButton("翻转画布", (di,w)->{
+                            int tmp = WH[0];
+                            WH[0] = WH[1];
+                            WH[1] = tmp;
+                            //同步修改悬浮窗实际窗口尺寸，关键修复
+                            selectLp.width = WH[0];
+                            selectLp.height = WH[1];
+                            mWindowManager.updateViewLayout(selectOverlay, selectLp);
+
+                            selStartX=selStartY=selEndX=selEndY=0;
+                            invalidate();
+                        });
+
+
+
+
+                        android.app.AlertDialog dialog = builder.create();
+
+                        int dialogType = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                                : WindowManager.LayoutParams.TYPE_PHONE;
+                        WindowManager.LayoutParams dLp = dialog.getWindow().getAttributes();
+                        dLp.type = dialogType;
+                        dialog.getWindow().setAttributes(dLp);
+                        dialog.show();
+                        break;
+                }
+                return true;
+            }
+        };
+
+        selectLp = new WindowManager.LayoutParams();
+        int type = Build.VERSION.SDK_INT>=Build.VERSION_CODES.O
+                ?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                :WindowManager.LayoutParams.TYPE_PHONE;
+        selectLp.type=type;
+        // 不再MATCH_PARENT，直接硬编码真实屏幕尺寸
+        selectLp.width = WH[0];
+        selectLp.height = WH[1];
+
+        selectLp.x = 0;
+        selectLp.y = 0;
+        // 全量全屏flag突破系统裁切
+        selectLp.flags=WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                | WindowManager.LayoutParams.FLAG_FULLSCREEN
+                | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
+
+        selectLp.format=PixelFormat.TRANSLUCENT;
+        selectLp.gravity=Gravity.TOP|Gravity.LEFT;
+
+        mWindowManager.addView(selectOverlay,selectLp);
+    }
+
+    //废弃旧的无参方法，删除原来 public void showSelectOverlay(){}
+public Point[] selectArea() throws InterruptedException {
+    Object lock = new Object();
+    Point lt = new Point();
+    Point rb = new Point();
+    //主线程拉起框选UI
+    appContext.getMainExecutor().execute(()-> showSelectOverlay((l,t,r,b)->{
+        lt.set(l,t);
+        rb.set(r,b);
+        synchronized (lock){
+            lock.notifyAll();
+        }
+    }));
+    //当前调用线程阻塞等待手动确定
+    synchronized (lock){
+        lock.wait();
+    }
+    return new Point[]{lt,rb};
+}
 
     public int getGreenSizPo()
     {
@@ -237,7 +430,7 @@ public class FloatWindow {
         }
     }
 
-    public void setTipsText(String text) {
+    public void  setTipsText(String text) {
         if (mTipsText == null || text == null) {
             return;
         }
@@ -245,6 +438,7 @@ public class FloatWindow {
         mTipsText.post(() -> mTipsText.setText(text));
     }
     public static boolean xmlState = false;
+    public static Point[] pointsLTRD= new  Point[2];
     private void initFloatWindow(Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         mFloatView = LayoutInflater.from(context).inflate(R.layout.float_window, null);
@@ -320,6 +514,231 @@ public class FloatWindow {
                     xmlState =false;
 
                 }
+
+                if(SetingTheParmer.useLeftRightControl == 1)
+                {
+                    if(StrogeXml.readLeftRightPos(context)[0][0]!= 0) {
+                        MainFunction.controlPos = StrogeXml.readLeftRightPos(context);
+                    }
+                }
+            //    showSelectOverlay();
+              /*  showSelectOverlay((left,top,right,bottom)->{
+                    int w = right-left;
+                    int h = bottom-top;
+                    if(w>0&&h>0){
+                        setTipsText("框选："+left+","+top+","+right+","+bottom);
+                        // 截图、保存xml代码放这里
+                    }
+                });*/
+
+
+               // Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(2827,1845,2899-2827,1932-1845);
+               /* Bitmap fisj = MainActivity.imageHadle.getAreaBitmap(815,89,904-815,161-89);
+                Mat mat =  ImageHadle.binarizeToMat(fisj,140);
+                MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+             */ /* showSelectOverlay((left,top,right,bottom)->{
+                    int w = right-left;
+                    int h = bottom-top;
+                    if(w>0&&h>0){
+                        setTipsText("框选："+left+","+top+","+right+","+bottom +"xxx"+MainFunction.bigHook.width());
+                        // 截图、保存xml代码放这里
+                        pointsLTRD[0].x = left;
+                        pointsLTRD[0].y = top;
+                        pointsLTRD[1].x = right;
+                        pointsLTRD[1].y = bottom;
+
+                        *//*    Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(target.x,target.y,MainFunction.bigHook.width(),MainFunction.bigHook.height());
+                        MainActivity.imageHadle.saveBitmap(bitmap);
+*//*
+                    }
+                });*/
+
+                //平板调试
+           /*     new Thread(()->{
+                    try {
+                        if(SetingTheParmer.stateDeviceModel  ==3){//框选
+                            setTipsText("请框选钩子");
+                            LogSaveUtil.saveLog("【步骤1】开始执行框选钩子流程");
+
+                            Point[] area = selectArea();
+                            String areaLog = "【步骤3】框选完成，赋值坐标：l="+area[0].x+","+area[0].y+" r="+area[1].x+","+area[1].y;
+                            setTipsText(areaLog);
+                            LogSaveUtil.saveLogWithLine(areaLog);
+                           // sleep(3000);
+
+                            pointsLTRD[0] = area[0];
+                            pointsLTRD[1] = area[1];
+                            MainActivity.imageHadle.saveBitmap(MainActivity.imageHadle.getAreaBitmap(pointsLTRD[0].x,pointsLTRD[0].y,
+                                                                                    pointsLTRD[1].x-pointsLTRD[0].x,pointsLTRD[1].y-pointsLTRD[0].y));
+                           // sleep(1000);
+                            setTipsText("搜索中()");
+                            LogSaveUtil.saveLog("【步骤4】进入图像匹配逻辑");
+
+                            Point leftTop = pointsLTRD[0];
+                            Point rightDown = pointsLTRD[1];
+                            Mat mat = MainFunction.bigHook;
+
+                            // 修复：矫正反向框选
+                            int realL = Math.min(leftTop.x, rightDown.x);
+                            int realT = Math.min(leftTop.y, rightDown.y);
+                            int realR = Math.max(leftTop.x, rightDown.x);
+                            int realB = Math.max(leftTop.y, rightDown.y);
+                            leftTop.set(realL, realT);
+                            rightDown.set(realR, realB);
+                            LogSaveUtil.saveLog("矫正后选区：L="+realL+" T="+realT+" R="+realR+" B="+realB);
+
+                            setTipsText("【步骤6】开始获取全屏截图");
+                            Bitmap allScreen = MainActivity.imageHadle.getScreenBitmap();
+                            if (allScreen == null) {
+                                String nullLog = "【错误】获取全屏截图allScreen为空，直接终止匹配";
+                                setTipsText(nullLog);
+                                LogSaveUtil.saveLogWithLine(nullLog);
+                               // sleep(5000);
+                                return;
+                            }
+                            String screenInfo = "【步骤7】截图获取成功，屏幕宽="+allScreen.getWidth()+" 高="+allScreen.getHeight();
+                            setTipsText(screenInfo);
+                            LogSaveUtil.saveLogWithLine(screenInfo);
+                            //sleep(5000);
+
+                            Mat movemat;
+                            Bitmap areaBmp;
+                            float k = 0,b =0;
+                            int totalCol = rightDown.x-leftTop.x - mat.cols();
+                            int totalRow = rightDown.y-leftTop.y - mat.rows();
+
+                            // 框选区域小于模板，直接退出
+                            if(totalCol <= 0 || totalRow <= 0){
+                                String smallLog = "【参数】框选区域小于模板尺寸，无法遍历匹配";
+                                setTipsText(smallLog);
+                                LogSaveUtil.saveLogWithLine(smallLog);
+                               // sleep(3000);
+                                if (allScreen != null) allScreen.recycle();
+                                return;
+                            }
+
+                            String paramLog = "【参数】总遍历列:"+totalCol+" 总遍历行:"+totalRow+" 模板宽:"+mat.cols()+" 模板高:"+mat.rows();
+                            setTipsText(paramLog);
+                            LogSaveUtil.saveLogWithLine(paramLog);
+                            sleep(2000);
+
+                            try{
+                                for (int co = 0;co < totalCol;co++){
+                                    for (int ro = 0;ro < totalRow;ro++){
+                                        int currX = leftTop.x + co;
+                                        int currY = leftTop.y + ro;
+                                        int cutW = mat.cols();
+                                        int cutH = mat.rows();
+                                        int screenW = allScreen.getWidth();
+                                        int screenH = allScreen.getHeight();
+
+                                 *//*       String posLog = "遍历位置：co="+co+" ro="+ro+" X="+currX+" Y="+currY;
+                                        setTipsText(posLog);
+                                        LogSaveUtil.saveLogWithLine(posLog);
+                                   *//*   //  sleep(8000);
+
+                                        // 边界校验：防止Bitmap.createBitmap越界崩溃
+                                        if(currX < 0 || currY < 0 || (currX + cutW) > screenW || (currY + cutH) > screenH){
+                                            String skipLog = "坐标越界跳过 X="+currX+" Y="+currY +"ScreenW = "+screenW+"ScreenY"+ screenH;
+                                            setTipsText(skipLog);
+                                            LogSaveUtil.saveLogWithLine(skipLog);
+                                            sleep(1000);
+                                            continue;
+                                        }
+
+                                        // 单独捕获裁切异常
+                                        try {
+                                            areaBmp = Bitmap.createBitmap(allScreen, currX,currY, cutW,cutH);
+                                        } catch (IllegalArgumentException ex) {
+                                            String errLog = "Bitmap裁切参数异常 X="+currX+" Y="+currY;
+                                            setTipsText(errLog);
+                                            LogSaveUtil.saveLogWithLine(errLog);
+                                            LogSaveUtil.saveException(ex);
+                                           // sleep(3000);
+                                            continue;
+                                        }
+
+                                        if(areaBmp == null)
+                                        {
+                                            setTipsText("area为空");
+                                            LogSaveUtil.saveLogWithLine("areaBmp 创建返回null");
+                                           // sleep(3000);
+                                        }else {
+                                        *//*    setTipsText("area不为空");
+                                            MainActivity.imageHadle.saveBitmap(areaBmp);
+                                            LogSaveUtil.saveLogWithLine("areaBmp 创建成功");
+                                       *//*    // sleep(3000);
+                                        }
+
+                                        movemat =  ImageHadle.binarizeToMat(areaBmp,140);
+                                        b = ImageHadle.matchSimilarity(movemat,mat);
+                                        LogSaveUtil.saveLog("当前相似度 = " + String.format("%.2f",k));
+                                      //  sleep();
+
+                                        if(k < b){
+                                            k= b;
+                                            setTipsText("刷新最大相似度："+String.format("%.2f",k));
+                                            LogSaveUtil.saveLog("当前最大相似度 = " + String.format("%.2f",k));
+                                     //  sleep(1000);
+                                        }
+
+                                        if( b>0.6){
+                                            String okLog = "✅匹配成功！相似度"+String.format("%.2f",b)+" 坐标"+currX+","+currY;
+                                            sleep(5000);
+                                            setTipsText(okLog);
+                                            LogSaveUtil.saveLogWithLine(okLog);
+
+                                            areaBmp = Bitmap.createBitmap(allScreen, currX,currY, mat.cols(),mat.rows());
+                                            MainActivity.imageHadle.saveBitmap(areaBmp);
+                                            MainFunction.hookPoint = new Point(currX,currY);
+                                           // sleep(2000);
+                                        }
+
+                                        // 资源释放
+                                        if (areaBmp != null) {
+                                            areaBmp.recycle();
+                                            areaBmp = null;
+                                        }
+                                        if (movemat != null) {
+                                            movemat.release();
+                                            movemat = null;
+                                        }
+                                    }
+                                }
+                            } finally {
+                                if (allScreen != null) {
+                                    allScreen.recycle();
+                                    String endLog = "【收尾】全屏Bitmap已回收，本次最大相似度："+String.format("%.2f",k);
+                                    sleep(10000);
+                                    setTipsText(endLog);
+                                    LogSaveUtil.saveLogWithLine(endLog);
+                                }
+                                if(MainFunction.hookPoint==null){
+                                    setTipsText("【结束】全区域遍历完毕，无匹配项");
+                                    LogSaveUtil.saveLog("遍历结束：未找到匹配目标");
+                                }else{
+                                    setTipsText("【结束】已成功保存钩子坐标");
+                                    LogSaveUtil.saveLog("遍历结束：成功匹配到目标");
+                                }
+                            }
+                        }
+                    }catch (Exception e){
+                        String crashLog = "线程全局异常崩溃";
+                        setTipsText(crashLog);
+                        LogSaveUtil.saveLogWithLine(crashLog);
+                        LogSaveUtil.saveException(e);
+                    }
+                }).start();
+
+             */  /* pointsLTRD = selectArea();
+
+                MainActivity.imageHadle.saveBitmap(MainActivity.imageHadle.getScreenBitmap());
+                Point target = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],140);
+                Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(target.x,target.y,MainFunction.bigHook.width(),MainFunction.bigHook.height());
+                MainActivity.imageHadle.saveBitmap(bitmap);*/
+              /*  Bitmap bitmap1 = ImageHadle.binaryzationToBit(bitmap,140);
+                MainActivity.imageHadle.saveBitmap(bitmap1);
+                */
              /*   Bitmap all = MainActivity.imageHadle.getScreenBitmap();
                 MainFunction.initSearchTheGreenPosHsv(all);
                 int wid = ImageHadle.width - (2*MainFunction.cGLinepoint.x);
@@ -403,7 +822,7 @@ public class FloatWindow {
                                 setTipsText("扫描钩子(耐心等待)");
                                 while (MainFunction.hookPoint == null)
                                 {
-                                    if(!MainActivity.bigAre) {
+                                    if(SetingTheParmer.stateDeviceModel == 1) {//手机
                                         MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                 57*ImageHadle.height/1080*2,200);
                                             if(MainFunction.hookPoint == null)
@@ -412,7 +831,7 @@ public class FloatWindow {
                                                 sleep(1000);
                                                 setTipsText("..扫描钩子(耐心等待)");
                                             }
-                                    }else {
+                                    }else if(SetingTheParmer.stateDeviceModel  == 2){//云异环
 
                                             MainFunction.hookPoint= ImageHadle.yunuiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                     57*ImageHadle.height/1080*2,200);//云扩大范围
@@ -423,24 +842,33 @@ public class FloatWindow {
                                                 setTipsText("..扫描钩子(耐心等待)");
                                             }
                                     }
+                                    else if(SetingTheParmer.stateDeviceModel  ==3){//框选
+                                            setTipsText("请框选钩子");
+                                            Point[] area = selectArea();
+                                            pointsLTRD[0] = area[0];
+                                            pointsLTRD[1] = area[1];
+                                            sleep(1000);
+                                            setTipsText("搜索中()");
+                                            MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],140);
+
+                                            if (MainFunction.hookPoint == null)//小钩子
+                                            {
+                                                MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.hook,pointsLTRD[0],pointsLTRD[1],140);
+                                            }
+                                        if (MainFunction.hookPoint == null)
+                                        {
+                                            setTipsText("未找到请重新框选");
+                                            sleep(1000);
+
+                                            }
+
+
+                                    }
                                        }
 
                                     boolean stateWithserch = true;
                                     setTipsText("扫到钩子，开始点击");
-                                  /*  if(MainActivity.bigAre)
-                                    {  clickStablePostion();
-                                        clickStablePostion();
-                                        sleep(2000);
-                                        setTipsText("检测到你已经开启了大区域，3s后点击");
-                                        sleep(3000);
-                                        clickStablePostion();
-                                        clickStablePostion();
-                                        setTipsText("如果没有点击成功就算失败了");
-                                        sleep(3000);
-                                        setTipsText("鱼鳔没了没事它还在与之前截的图比对，除非三次进行了点击否则别关掉程序");
-                                        sleep(10000);
-                                        //
-                                    }*/
+
                                 sleep(500);
                                     while(stateWithserch)
                                     {
@@ -448,13 +876,13 @@ public class FloatWindow {
                                         sleep(SetingTheParmer.clickTime);
                                         if(MainFunction.isHook() == false){
                                             setTipsText("扫描鱼标");
-                                            if(!MainActivity.bigAre) {
+                                            if(SetingTheParmer.stateDeviceModel ==1) {//手机
 
                                                 MainFunction.fishStaPoint = ImageHadle.uiLineSearch(MainFunction.fishsate,
                                                         new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
                                                         60*ImageHadle.height/1080*2,140);
 
-                                            }else {
+                                            }else if(SetingTheParmer.stateDeviceModel  == 2){//云
 
                                                 MainFunction.fishStaPoint = ImageHadle.yunuiLineSearch(MainFunction.fishsate,
                                                         new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
@@ -462,14 +890,38 @@ public class FloatWindow {
 
                                              //  MainFunction.initSearchTheGreenPosHsv(all);
                                             }
+                                            else if(SetingTheParmer.stateDeviceModel  ==3){//框选
+                                                sleep(1000);
+                                                if(MainFunction.isHook() == false)
+                                                {
+                                                    setTipsText("请框选鱼标");
+                                                    Point[] area = selectArea();
+                                                    pointsLTRD[0] = area[0];
+                                                    pointsLTRD[1] = area[1];
+                                                    sleep(1000);
+                                                    setTipsText("搜索中()");
+                                                    MainFunction.fishStaPoint = ImageHadle.cutSelf(MainFunction.bigFish,pointsLTRD[0],pointsLTRD[1],140);
+                                                    if (MainFunction.fishStaPoint == null)
+                                                    {
+                                                        MainFunction.fishStaPoint = ImageHadle.cutSelf(MainFunction.fishsate,pointsLTRD[0],pointsLTRD[1],140);
+
+                                                    }
+                                                    if (MainFunction.fishStaPoint == null)
+                                                    {
+                                                        setTipsText("未找到请重新框选");
+                                                        sleep(1000);
+                                                    }
+                                                }
+
+
+
+                                            }
                                            if(MainFunction.fishStaPoint != null)
                                             {
-                                               /* MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
-                                                        MainFunction.fishStaPoint.y + getGreenSizPo());
-                                           */
+                                           //     MainFunction.cGLinepoint = new Point( MainFunction.fishStaPoint.x +MainFunction.sWToTrsf(119),
+                                                   //     MainFunction.fishStaPoint.y + getGreenSizPo());
                                                 if(MainFunction.isFishStae()){
                                                     Bitmap all = MainActivity.imageHadle.getScreenBitmap();
-
                                                     MainFunction.initSearchTheGreenPosHsv(all);
                                                     all.recycle();
                                                 }
@@ -480,6 +932,38 @@ public class FloatWindow {
                                                                         MainFunction.cGLinepoint.x,MainFunction.cGLinepoint.y);
                                                 setTipsText("ok所有图标均已扫完");
                                                 sleep(500);
+
+                                                if(SetingTheParmer.useLeftRightControl == 1)
+                                                {
+                                                    int[][] controlPos = new int[2][2];
+
+                                                    setTipsText("框选俩控制，注意只是获取其坐标，不比对");
+                                                    sleep(2000);
+                                                    setTipsText("获取第一个");
+                                                    Point[] area = selectArea();
+                                                    Point point1 = new Point( (area[1].x + area[0].x)/2,(area[1].y+area[0].y)/2);
+                                                    setTipsText("获取第二个");
+                                                    Point[] area2 = selectArea();
+                                                    Point point2 = new Point( (area2[1].x + area2[0].x)/2,(area2[1].y+area2[0].y)/2);
+                                                    //判断左右
+                                                    if(point1.x < point2.x)//1在左
+                                                    {
+                                                        controlPos[0][0] = point1.x;
+                                                        controlPos[0][1] = point1.y;
+                                                        controlPos[1][0] = point2.x;
+                                                        controlPos[1][1] = point2.y;
+
+                                                      }else{//1在右边
+                                                        controlPos[0][0] = point2.x;
+                                                        controlPos[0][1] = point2.y;
+                                                        controlPos[1][0] = point1.x;
+                                                        controlPos[1][1] = point1.y;
+                                                    }
+                                                    MainFunction.controlPos = controlPos;
+                                                    StrogeXml.writeLeftRightPos(context,controlPos[0][0],controlPos[0][1],  controlPos[1][0], controlPos[1][1]);
+
+                                                }
+
                                                 xmlState = false;
                                                 stateWithserch = false;
                                                 break;
@@ -504,8 +988,7 @@ public class FloatWindow {
                                             clickStablePostion();
                                             sleep(SetingTheParmer.clickTime);
                                         }else if(MainFunction.isFishStae()){
-                                         /*   MainFunction.addERROR = 0;
-                                            MainFunction.lastError = 0;*/
+
                                             mainState = 1;
 
                                         }else {
@@ -569,6 +1052,8 @@ public class FloatWindow {
             }
             return false;
         });
+        //长按弹出框选
+
     }
     public void clickStablePostion() {//2151   952
         AutoClick.service.click(MainFunction.hookPoint.x,MainFunction.hookPoint.y,0,50);//z这样都没有也能防卡住

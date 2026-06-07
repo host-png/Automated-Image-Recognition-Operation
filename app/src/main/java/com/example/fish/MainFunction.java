@@ -1,5 +1,7 @@
 package com.example.fish;
 
+import static android.os.SystemClock.sleep;
+
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.provider.ContactsContract;
@@ -10,6 +12,8 @@ import org.opencv.core.Scalar;
 
 public class  MainFunction {
     public static Mat hook, fishsate;
+    public  static Mat bigHook,bigFish;
+
 
     public static Point hookPoint = null,fishStaPoint = null,cGLinepoint = null;
     //钩子识别
@@ -27,12 +31,18 @@ public class  MainFunction {
     public static void init(){//初始化
         hook = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.hook);
         fishsate =  ImageHadle.loadRawTemplate(MainActivity.context,R.raw.fishstate);
+        bigHook = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.bighook);
+        bigFish = ImageHadle.loadRawTemplate(MainActivity.context,R.raw.bigfish);
         //hook = ImageHadle.scaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));
         hook = ImageHadle.vectorScaleMat(hook,sizdToTrsf(48),sizdToTrsf(57));
 
         //fishsate = ImageHadle.scaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
         fishsate = ImageHadle.vectorScaleMat(fishsate,sizdToTrsf(60),sizdToTrsf(55));
       //  fishsate=ImageHadle.scaleMat(fishsate,xToTrsf(60),yToTrsf(55));
+          bigHook = ImageHadle.vectorScaleMat(bigHook,72* ImageHadle.height/2064
+                        ,87* ImageHadle.height/2064);
+          bigFish = ImageHadle.vectorScaleMat(bigFish,89* ImageHadle.height/2064
+                  ,72* ImageHadle.height/2064);
     }
 
     public static void getAllUiPointa() {//改方法只能够在已经获取到Ui的相对坐标下才能够使用
@@ -43,6 +53,14 @@ public class  MainFunction {
 
     public static boolean isHook()//钩子判断 必须得有point对象
     {
+        if(SetingTheParmer.stateDeviceModel == 3)
+        {
+            if (isBigHook())
+            {
+                return true;
+            }
+
+        }
         if(hookPoint !=null){
             Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(hookPoint.x ,hookPoint.y,sizdToTrsf(48),sizdToTrsf(57));
             Mat mat = ImageHadle.binarizeToMat(bitmap,200);
@@ -63,8 +81,37 @@ public class  MainFunction {
      return  false;
     }
 
+    public static boolean isBigHook()//钩子判断 必须得有point对象
+    {
+        if(hookPoint !=null){
+            Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(hookPoint.x ,hookPoint.y,72* ImageHadle.height/2064
+                    ,87* ImageHadle.height/2064);
+            Mat mat = ImageHadle.binarizeToMat(bitmap,140);
+            if (bitmap == null) {
+                return false;
+            }
+            if( ImageHadle.matchSimilarity(mat,bigHook) > 0.5) {
+                // Log.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(hook,mat)));
+                bitmap.recycle();
+                mat.release();
+                return true;
+            }else{
+                bitmap.recycle();
+                mat.release();
+                return false;
+            }
+        }
+        return  false;
+    }
 
     public static boolean isFishStae(){//鱼判断
+        if(SetingTheParmer.stateDeviceModel == 3)
+        {
+            if( isBigFish())
+            {
+                return true;
+            }
+        }
      if(fishStaPoint != null)
      {
          Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(fishStaPoint.x,fishStaPoint.y,sizdToTrsf(60),sizdToTrsf(55));
@@ -85,6 +132,38 @@ public class  MainFunction {
      }
      return false;
     }
+    public static boolean isBigFish(){//鱼判断
+        if(fishStaPoint != null)
+        {
+            Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(fishStaPoint.x,fishStaPoint.y,89* ImageHadle.height/2064
+                    ,72* ImageHadle.height/2064);
+            Mat mat = ImageHadle.binarizeToMat(bitmap,140);
+            if (bitmap == null) {
+                return false;
+            }
+            if(ImageHadle.matchSimilarity(mat,bigFish) > 0.5){
+                //og.d("hokokxia", String.valueOf(ImageHadle.matchSimilarity(mat,fishsate)));
+                mat.release();
+                bitmap.recycle();
+                return true;
+            }else{
+                bitmap.recycle();
+                mat.release();
+                return false;
+            }
+        }
+        return false;
+    }
+    public static boolean twoVerifyHook() {//双重验证法
+
+        boolean sta1 = isBigHook();
+        sleep(500);
+        boolean sta2 = isBigHook();
+
+        return sta1||sta2;
+
+    }
+
 
     //获取黄条的坐标只返回x y是已知的
     // x是相对坐标还得加上815
@@ -203,9 +282,7 @@ public class  MainFunction {
 
 
 
-
-    public static int addERROR = 0;
-    public static int lastError = 0;
+    public static int[][] controlPos = new int[2][2];
     // 修正：改成静态代码块初始化
     public static float speep;
     static {
@@ -216,17 +293,28 @@ public class  MainFunction {
     {
         if(move>0)//光标右移
         {
+            if(SetingTheParmer.useLeftRightControl == 1)
+            {
+                AutoClick.service.click(controlPos[1][0], controlPos[1][1], 0, (int)((float)move/speep));
 
-            AutoClick.service.click(sWToTrsf(2060), sizdToTrsf(830), 0, (int)((float)move/speep));
-           /* addERROR += move;
+            }else {
+                AutoClick.service.click(sWToTrsf(2060), sizdToTrsf(830), 0, (int)((float)move/speep));
+
+            }
+               /* addERROR += move;
             int AT = (int)((move*1.8) + addERROR * 0.01 + (move-lastError) * 0.2);
             AutoClick.service.click(2060, 830, 0, AT);
             lastError = move;*/
         }
         else {//光标左移
             move = -move;
-            AutoClick.service.click(sWToTrsf(380),sizdToTrsf(830), 0, (int) ((float) move / speep));
+            if(SetingTheParmer.useLeftRightControl == 1)
+            {
+                AutoClick.service.click(controlPos[0][0], controlPos[0][1], 0, (int)((float)move/speep));
 
+            }else {
+                AutoClick.service.click(sWToTrsf(380), sizdToTrsf(830), 0, (int) ((float) move / speep));
+            }
           /*  move = -move;
             addERROR += move;
             int AT = (int)((move*1.8) + addERROR * 0.01 + (move-lastError) * 0.2);
@@ -269,7 +357,7 @@ public class  MainFunction {
     boolean firstWrite = false,exit1 = false;
     //从下网上扫
     for (int i = MainFunction.fishsate.height()-1;i>=0;i--){//行
-        if(num == 6 || exit1)
+        if(num == 10 || exit1)
         {
             break;
         }
