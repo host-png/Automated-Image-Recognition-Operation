@@ -31,7 +31,7 @@ import java.io.File;
 public class FloatWindow {
 
 
-    private WindowManager mWindowManager;//·窗口管理对象
+    private static WindowManager mWindowManager;//·窗口管理对象
     private View mFloatView;//悬浮创控件
     private WindowManager.LayoutParams mParams;
 
@@ -40,18 +40,21 @@ public class FloatWindow {
     private int startX, startY;
 
     // 全局 Application Context（永远不死，悬浮窗专用）
-    private Context appContext;
+    private static Context  appContext;
 
 
     public FloatWindow(Context context) {//构造函数
         appContext = context.getApplicationContext();
+        mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         SetingTheParmer.init(appContext);
         initFloatWindow(context);
     }
+
     private View mTipsView;
     private WindowManager.LayoutParams mTipsParams;
     private android.widget.TextView mTipsText;
-    private boolean threadIsRunning = true,  threadIsRunning1 = true;;
+    private boolean threadIsRunning = true, threadIsRunning1 = true;
+    ;
     private static final String TAG = "FishDebug";
 
 
@@ -130,9 +133,9 @@ public class FloatWindow {
     private void createFloatTips() {
         mTipsText = new android.widget.TextView(appContext);
         mTipsText.setText("未开始（连续点击三下进入参数设置）");
-        int textSize = (int)(ImageHadle.height*0.013f);
+        int textSize = (int) (ImageHadle.height * 0.013f);
         mTipsText.setTextSize(textSize);
-       // mTipsText.setTextSize(14);
+        // mTipsText.setTextSize(14);
         mTipsText.setTextColor(0xFFFF0000);
         mTipsText.setBackgroundColor(0x88000000);
         mTipsText.setPadding(10, 5, 10, 5);
@@ -143,13 +146,13 @@ public class FloatWindow {
         mTipsParams.type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
-       // mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
+        // mTipsParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_PANEL;
 
-        mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE ;
+        mTipsParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
         mTipsParams.format = PixelFormat.TRANSLUCENT;
         mTipsParams.gravity = Gravity.TOP | Gravity.LEFT;
         mTipsParams.x = 0;
-        mTipsParams.y = ImageHadle.height/2;
+        mTipsParams.y = ImageHadle.height / 2;
 // 绑定点击监听，实现三击弹窗
         mTipsText.setOnClickListener(v -> {
             long now = System.currentTimeMillis();
@@ -170,26 +173,25 @@ public class FloatWindow {
     }
 
     private void showSettingDialog() {
-
         // 改用系统悬浮窗弹窗，避开Activity Token报错
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(appContext);
         builder.setTitle("钓鱼参数配置");
 
         android.widget.LinearLayout layout = new android.widget.LinearLayout(appContext);
         layout.setOrientation(android.widget.LinearLayout.VERTICAL);
-        layout.setPadding(40,20,40,20);
+        layout.setPadding(40, 20, 40, 20);
 
-        // 单独标题文本：全局循环帧数(hz)
+        // 全局循环帧数(hz)
         android.widget.TextView tvAllTip = new android.widget.TextView(appContext);
         tvAllTip.setText("全局循环帧数(hz)越大光标越灵敏，但发热也越严重");
         tvAllTip.setTextSize(15);
         layout.addView(tvAllTip);
 
         final android.widget.EditText etAllTime = new android.widget.EditText(appContext);
-        etAllTime.setText(String.valueOf((int)(1000.0 / SetingTheParmer.allTheardTime)));
+        etAllTime.setText(String.valueOf((int) (1000.0 / SetingTheParmer.allTheardTime)));
         layout.addView(etAllTime);
 
-        // 单独标题文本：点击后等待延时(ms)
+        // 点击后等待延时(ms)
         android.widget.TextView tvClickTip = new android.widget.TextView(appContext);
         tvClickTip.setText("点击后等待延时(ms)");
         tvClickTip.setTextSize(15);
@@ -199,10 +201,30 @@ public class FloatWindow {
         etClickTime.setText(String.valueOf(SetingTheParmer.clickTime));
         layout.addView(etClickTime);
 
+        // ========== 新增：钓几次自动换饵料 ==========
+        android.widget.TextView tvBaitTip = new android.widget.TextView(appContext);
+        tvBaitTip.setText("钓多少次自动更换饵料");
+        tvBaitTip.setTextSize(15);
+        layout.addView(tvBaitTip);
+
+        final android.widget.EditText etBaitCount = new android.widget.EditText(appContext);
+        etBaitCount.setText(String.valueOf(DiscreteRandomWorld.changeBaitCount));
+        layout.addView(etBaitCount);
+
+        // ========== 新增：钓几次自动卖鱼 ==========
+        android.widget.TextView tvSellTip = new android.widget.TextView(appContext);
+        tvSellTip.setText("钓多少次自动出售鱼货");
+        tvSellTip.setTextSize(15);
+        layout.addView(tvSellTip);
+
+        final android.widget.EditText etSellCount = new android.widget.EditText(appContext);
+        etSellCount.setText(String.valueOf(DiscreteRandomWorld.sellFishCount));
+        layout.addView(etSellCount);
+
         builder.setView(layout);
 
         android.app.AlertDialog dialog = builder.create();
-        // 关键：弹窗设置悬浮窗类型，脱离Activity依赖
+        // 悬浮窗类型适配
         int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                 : WindowManager.LayoutParams.TYPE_PHONE;
@@ -211,40 +233,55 @@ public class FloatWindow {
         dialog.getWindow().setAttributes(lp);
 
         dialog.setButton(android.app.Dialog.BUTTON_POSITIVE, "保存并修改", (d, which) -> {
-            try{
+            try {
                 int allT = Integer.parseInt(etAllTime.getText().toString().trim());
                 int clickT = Integer.parseInt(etClickTime.getText().toString().trim());
+                // 解析新增两个数值
+                int baitCnt = Integer.parseInt(etBaitCount.getText().toString().trim());
+                int sellCnt = Integer.parseInt(etSellCount.getText().toString().trim());
+
+                // 赋值到全局参数
                 SetingTheParmer.clickTime = clickT;
-                SetingTheParmer.allTheardTime = 1000/allT;
+                SetingTheParmer.allTheardTime = 1000 / allT;
+                DiscreteRandomWorld.changeBaitCount = baitCnt;
+                DiscreteRandomWorld.sellFishCount = sellCnt;
+
+                // 持久化保存
                 SetingTheParmer.saveFile(appContext);
                 setTipsText("参数已保存");
-            }catch (NumberFormatException e){
-                setTipsText("参数格式错误！");
+            } catch (NumberFormatException e) {
+                setTipsText("参数格式错误！请输入纯数字");
             }
         });
-        dialog.setButton(android.app.Dialog.BUTTON_NEGATIVE, "取消", (d, which)->{});
+
+        dialog.setButton(android.app.Dialog.BUTTON_NEGATIVE, "取消", (d, which) -> {
+        });
         dialog.show();
     }
 
-    private View selectOverlay;
 
-    private WindowManager.LayoutParams selectLp;
-    private float selStartX,selStartY,selEndX,selEndY;
+    private static View selectOverlay;
+    private static WindowManager.LayoutParams selectLp;
+    private static float selStartX, selStartY, selEndX, selEndY;
+    private static SelectCallback tempCb;
+
     //回调接口
-    public interface SelectCallback{
-        void onSelect(int left,int top,int right,int bottom);
+    public interface SelectCallback {
+        void onSelect(int left, int top, int right, int bottom);
     }
+
     //临时保存当前等待回调
-    private SelectCallback tempCb;
+  //  private static SelectCallback tempCb;
 
     /**
      * 外部/本类任意位置调用：唤起框选
+     *
      * @param callback 框选确定后返回坐标
      */
-    public void showSelectOverlay(SelectCallback callback){
-        if(selectOverlay!=null && selectOverlay.getParent()!=null) return;
+    public static void showSelectOverlay(SelectCallback callback) {
+        if (selectOverlay != null && selectOverlay.getParent() != null) return;
         //接收本次回调
-        this.tempCb = callback;
+        tempCb = callback;
 
         //初始化坐标=0，默认全屏灰色
         selStartX = 0;
@@ -263,9 +300,10 @@ public class FloatWindow {
 
         final int[] WH = screenSize;
 
-        selectOverlay = new View(appContext){
+        selectOverlay = new View(appContext) {
             final Paint maskPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
             {
                 maskPaint.setColor(0x99000000);
                 linePaint.setColor(Color.WHITE);
@@ -282,19 +320,19 @@ public class FloatWindow {
             @Override
             protected void onDraw(Canvas canvas) {
                 super.onDraw(canvas);
-                int l = (int)Math.min(selStartX,selEndX);
-                int t = (int)Math.min(selStartY,selEndY);
-                int r = (int)Math.max(selStartX,selEndX);
-                int b = (int)Math.max(selStartY,selEndY);
+                int l = (int) Math.min(selStartX, selEndX);
+                int t = (int) Math.min(selStartY, selEndY);
+                int r = (int) Math.max(selStartX, selEndX);
+                int b = (int) Math.max(selStartY, selEndY);
 
                 Path path = new Path();
                 // 固定真实屏幕宽高绘制，不再依赖getWidth()
-                path.addRect(0,0,WH[0],WH[1],Path.Direction.CW);
+                path.addRect(0, 0, WH[0], WH[1], Path.Direction.CW);
                 Path rectPath = new Path();
-                rectPath.addRect(l,t,r,b,Path.Direction.CW);
+                rectPath.addRect(l, t, r, b, Path.Direction.CW);
                 path.op(rectPath, Path.Op.DIFFERENCE);
-                canvas.drawPath(path,maskPaint);
-                canvas.drawRect(l,t,r,b,linePaint);
+                canvas.drawPath(path, maskPaint);
+                canvas.drawRect(l, t, r, b, linePaint);
             }
 
             @Override
@@ -302,47 +340,51 @@ public class FloatWindow {
                 // 使用屏幕绝对坐标，框选坐标和画面坐标完全一致无偏移
                 float x = ev.getRawX();
                 float y = ev.getRawY();
-                switch (ev.getAction()){
+                switch (ev.getAction()) {
                     case MotionEvent.ACTION_DOWN:
-                        selStartX=x;selStartY=y;selEndX=x;selEndY=y;
+                        selStartX = x;
+                        selStartY = y;
+                        selEndX = x;
+                        selEndY = y;
                         invalidate();
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        selEndX=x;selEndY=y;
+                        selEndX = x;
+                        selEndY = y;
                         invalidate();
                         break;
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        int l = (int)Math.min(selStartX,selEndX);
-                        int t = (int)Math.min(selStartY,selEndY);
-                        int r = (int)Math.max(selStartX,selEndX);
-                        int b = (int)Math.max(selStartY,selEndY);
+                        int l = (int) Math.min(selStartX, selEndX);
+                        int t = (int) Math.min(selStartY, selEndY);
+                        int r = (int) Math.max(selStartX, selEndX);
+                        int b = (int) Math.max(selStartY, selEndY);
 
                         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(appContext);
                         builder.setTitle("确认选区？");
                         //确定：先关弹窗、移除遮罩，延时再回调，解决截图遮挡
-                        builder.setPositiveButton("确定",(di,w)->{
-                            ((android.app.AlertDialog)di).dismiss();
-                            if(selectOverlay != null && selectOverlay.getParent() != null){
+                        builder.setPositiveButton("确定", (di, w) -> {
+                            ((android.app.AlertDialog) di).dismiss();
+                            if (selectOverlay != null && selectOverlay.getParent() != null) {
                                 mWindowManager.removeView(selectOverlay);
                             }
                             selectOverlay = null;
-                            new android.os.Handler().postDelayed(()->{
-                                if(tempCb != null){
-                                    tempCb.onSelect(l,t,r,b);
+                            new android.os.Handler().postDelayed(() -> {
+                                if (tempCb != null) {
+                                    tempCb.onSelect(l, t, r, b);
                                 }
                                 tempCb = null;
-                            },80);
+                            }, 80);
                         });
                         //重选：坐标归零+刷新=变回全屏灰色
-                        builder.setNegativeButton("重选",(di,w)->{
+                        builder.setNegativeButton("重选", (di, w) -> {
                             selStartX = 0;
                             selStartY = 0;
                             selEndX = 0;
                             selEndY = 0;
                             invalidate();
                         });
-                        builder.setNeutralButton("翻转画布", (di,w)->{
+                        builder.setNeutralButton("翻转画布", (di, w) -> {
                             int tmp = WH[0];
                             WH[0] = WH[1];
                             WH[1] = tmp;
@@ -351,11 +393,9 @@ public class FloatWindow {
                             selectLp.height = WH[1];
                             mWindowManager.updateViewLayout(selectOverlay, selectLp);
 
-                            selStartX=selStartY=selEndX=selEndY=0;
+                            selStartX = selStartY = selEndX = selEndY = 0;
                             invalidate();
                         });
-
-
 
 
                         android.app.AlertDialog dialog = builder.create();
@@ -374,10 +414,10 @@ public class FloatWindow {
         };
 
         selectLp = new WindowManager.LayoutParams();
-        int type = Build.VERSION.SDK_INT>=Build.VERSION_CODES.O
-                ?WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-                :WindowManager.LayoutParams.TYPE_PHONE;
-        selectLp.type=type;
+        int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+                ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                : WindowManager.LayoutParams.TYPE_PHONE;
+        selectLp.type = type;
         // 不再MATCH_PARENT，直接硬编码真实屏幕尺寸
         selectLp.width = WH[0];
         selectLp.height = WH[1];
@@ -385,60 +425,59 @@ public class FloatWindow {
         selectLp.x = 0;
         selectLp.y = 0;
         // 全量全屏flag突破系统裁切
-        selectLp.flags=WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        selectLp.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
                 | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
                 | WindowManager.LayoutParams.FLAG_FULLSCREEN
                 | WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
 
-        selectLp.format=PixelFormat.TRANSLUCENT;
-        selectLp.gravity=Gravity.TOP|Gravity.LEFT;
+        selectLp.format = PixelFormat.TRANSLUCENT;
+        selectLp.gravity = Gravity.TOP | Gravity.LEFT;
 
-        mWindowManager.addView(selectOverlay,selectLp);
+        mWindowManager.addView(selectOverlay, selectLp);
     }
 
     //废弃旧的无参方法，删除原来 public void showSelectOverlay(){}
-public Point[] selectArea() throws InterruptedException {
-    Object lock = new Object();
-    Point lt = new Point();
-    Point rb = new Point();
-    //主线程拉起框选UI
-    appContext.getMainExecutor().execute(()-> showSelectOverlay((l,t,r,b)->{
-        lt.set(l,t);
-        rb.set(r,b);
-        synchronized (lock){
-            lock.notifyAll();
+    public static Point[] selectArea() throws InterruptedException {
+        Object lock = new Object();
+        Point lt = new Point();
+        Point rb = new Point();
+        //主线程拉起框选UI
+        appContext.getMainExecutor().execute(() -> showSelectOverlay((l, t, r, b) -> {
+            lt.set(l, t);
+            rb.set(r, b);
+            synchronized (lock) {
+                lock.notifyAll();
+            }
+        }));
+        //当前调用线程阻塞等待手动确定
+        synchronized (lock) {
+            lock.wait();
         }
-    }));
-    //当前调用线程阻塞等待手动确定
-    synchronized (lock){
-        lock.wait();
+        return new Point[]{lt, rb};
     }
-    return new Point[]{lt,rb};
-}
 
-    public int getGreenSizPo()
-    {
-        if(ImageHadle.width>1920)
-        {
+    public int getGreenSizPo() {
+        if (ImageHadle.width > 1920) {
             return MainFunction.sizdToTrsf(21);//2340 2400 2408
-        } else if (ImageHadle.width>720) {
+        } else if (ImageHadle.width > 720) {
             return MainFunction.sizdToTrsf(23);//1920
-        }
-        else {
-            return MainFunction.sizdToTrsf(20)+2;//1280
+        } else {
+            return MainFunction.sizdToTrsf(20) + 2;//1280
         }
     }
 
-    public void  setTipsText(String text) {
+    public  void setTipsText(String text) {
         if (mTipsText == null || text == null) {
             return;
         }
         // 抛到主线程更新UI
         mTipsText.post(() -> mTipsText.setText(text));
     }
+
     public static boolean xmlState = false;
-    public static Point[] pointsLTRD= new  Point[2];
+    public static Point[] pointsLTRD = new Point[2];
+
     private void initFloatWindow(Context context) {
         mWindowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         mFloatView = LayoutInflater.from(context).inflate(R.layout.float_window, null);
@@ -494,34 +533,32 @@ public Point[] selectArea() throws InterruptedException {
 
 
             Log.d(TAG, "按钮被点击，当前按钮状态：" + buttonState);
-            if(buttonState) {
+            if (buttonState) {
                 buttonState = false;
                 threadIsRunning = true;
-               threadIsRunning1 = true;
+                threadIsRunning1 = true;
                 btn.setImageResource(R.drawable.zaowu_glasses);
                 setTipsText("运行中");
                 Log.i(TAG, "启动钓鱼运行线程");
 
 
-                if(StrogeXml.readPoint(context)[0][0] == 0) {
+                if (StrogeXml.readPoint(context)[0][0] == 0) {
                     xmlState = true;
-                }
-                else {
+                } else {
                     int point[][] = StrogeXml.readPoint(context);
-                    MainFunction.hookPoint = new Point(point[0][0],point[0][1]);
-                    MainFunction.fishStaPoint = new Point(point[1][0],point[1][1]);
-                    MainFunction.cGLinepoint = new Point( point[2][0],point[2][1]);
-                    xmlState =false;
+                    MainFunction.hookPoint = new Point(point[0][0], point[0][1]);
+                    MainFunction.fishStaPoint = new Point(point[1][0], point[1][1]);
+                    MainFunction.cGLinepoint = new Point(point[2][0], point[2][1]);
+                    xmlState = false;
 
                 }
 
-                if(SetingTheParmer.useLeftRightControl == 1)
-                {
-                    if(StrogeXml.readLeftRightPos(context)[0][0]!= 0) {
+                if (SetingTheParmer.useLeftRightControl == 1) {
+                    if (StrogeXml.readLeftRightPos(context)[0][0] != 0) {
                         MainFunction.controlPos = StrogeXml.readLeftRightPos(context);
                     }
                 }
-            //    showSelectOverlay();
+                //    showSelectOverlay();
               /*  showSelectOverlay((left,top,right,bottom)->{
                     int w = right-left;
                     int h = bottom-top;
@@ -530,9 +567,83 @@ public Point[] selectArea() throws InterruptedException {
                         // 截图、保存xml代码放这里
                     }
                 });*/
+                //商店
+           /*     Bitmap bitmapShop = MainActivity.imageHadle.getAreaBitmap(2209, 934, 2228 - 2209, 958 - 934);
+                MainActivity.imageHadle.saveBitmap(bitmapShop);
+                Mat mat = ImageHadle.binarizeToMat(bitmapShop, 120);
+                MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+            */   /* Bitmap bitmapClose = MainActivity.imageHadle.getAreaBitmap(2213, 60, 2238-2213, 82-60);
+                MainActivity.imageHadle.saveBitmap(bitmapClose);
+                Mat mat =  ImageHadle.binarizeToMat(bitmapClose,100);
+                MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+*/
+
+                //Bitmap bitmap5 = MainActivity.imageHadle.getAreaBitmap(397, 282, 446-397, 307-282);
+
+                //  MainActivity.imageHadle.saveBitmap(bitmap5);
+               /* Mat mat1 =  ImageHadle.binarizeToMat(bitmap5,140);
+                Point[] area = null;
+                try {
+                    area = selectArea();
+
+                    pointsLTRD[0] = area[0];
+                    pointsLTRD[1] = area[1];
+                    sleep(1000);
+                    setTipsText("搜索中()");
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                MainFunction.fishStaPoint = ImageHadle.cutSelf(ImageHadle.loadRawTemplate(MainActivity.context,R.raw.fishfd140),pointsLTRD[0],pointsLTRD[1],140);
+*/
+
+                //测试线程搜索比对
+/*                new Thread(() -> {
+                    try {
+                        if (SetingTheParmer.stateDeviceModel == 3) {
+                            setTipsText("请框选目标区域");
+                            LogSaveUtil.saveLog("【步骤1】开始执行区域截取+图像匹配流程");
+
+                            // 截取指定区域位图
+                           // Bitmap bitmap5 = MainActivity.imageHadle.getAreaBitmap(397, 282, 446 - 397, 307 - 282);
+                            // MainActivity.imageHadle.saveBitmap(bitmap5);
+
+                            //Mat mat1 = ImageHadle.binarizeToMat(bitmap5, 140);
+                            Point[] area = selectArea();
+
+                            String areaLog = "【步骤2】框选完成，赋值坐标：l=" + area[0].x + "," + area[0].y + " r=" + area[1].x + "," + area[1].y;
+                            setTipsText(areaLog);
+                           // LogSaveUtil.saveLogWithLine(areaLog);
+
+                            pointsLTRD[0] = area[0];
+                            pointsLTRD[1] = area[1];
+
+                            Thread.sleep(1000);
+                            setTipsText("搜索中()");
+                         //   LogSaveUtil.saveLog("【步骤3】进入图像匹配逻辑");
+
+                            // 加载模板并计算点位
+                            Mat templateMat = ImageHadle.loadRawTemplate(MainActivity.context, R.raw.buy100);
+                            MainFunction.fishStaPoint = ImageHadle.cutSelf(templateMat, pointsLTRD[0], pointsLTRD[1], 140);
+
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        e.printStackTrace();
+                    } catch (Exception e) {
+                        LogSaveUtil.saveLog("【异常】子线程执行出错：" + e.getMessage());
+                        e.printStackTrace();
+                    } finally {
+
+                    }
+                }).start();*/
+                //  MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],140);
 
 
-               // Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(2827,1845,2899-2827,1932-1845);
+                //  MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+                //MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
+
+
+                // Bitmap bitmap = MainActivity.imageHadle.getAreaBitmap(2827,1845,2899-2827,1932-1845);
                /* Bitmap fisj = MainActivity.imageHadle.getAreaBitmap(815,89,904-815,161-89);
                 Mat mat =  ImageHadle.binarizeToMat(fisj,140);
                 MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(mat));
@@ -794,10 +905,10 @@ public Point[] selectArea() throws InterruptedException {
                 else{
                     Log.v(TAG, "污垢子");
                 }*/
-              //  Log.i(TAG, "X坐标"+ (int)((0.88125*ImageHadle.width) +10.5));
+                //  Log.i(TAG, "X坐标"+ (int)((0.88125*ImageHadle.width) +10.5));
 
-             //   Point point = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
-              //          57*ImageHadle.height/1080*2,200);
+                //   Point point = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
+                //          57*ImageHadle.height/1080*2,200);
 
            /*     Point pointFish = ImageHadle.uiLineSearch(MainFunction.fishsate,
                         new Point((int)((0.3324*ImageHadle.width)-81.43),(int)(0.085*ImageHadle.height)),
@@ -814,7 +925,7 @@ public Point[] selectArea() throws InterruptedException {
                 }*/
 
 
-                    new Thread(() -> {
+           /*         new Thread(() -> {
                         try {
                             if(xmlState) {
                                 setTipsText("首次图标坐标扫描(注意不要乱动屏幕)");
@@ -1021,10 +1132,9 @@ public Point[] selectArea() throws InterruptedException {
                             setTipsText("钓鱼线程异常崩溃");
                             Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
-                    }).start();
-            }
-            else {
-                threadIsRunning1  = false;
+                    }).start();*/
+            } else {
+                threadIsRunning1 = false;
                 buttonState = true;
                 threadIsRunning = false;
                 btn.setImageResource(R.drawable.zaowu_icon);
@@ -1055,8 +1165,9 @@ public Point[] selectArea() throws InterruptedException {
         //长按弹出框选
 
     }
+
     public void clickStablePostion() {//2151   952
-        AutoClick.service.click(MainFunction.hookPoint.x,MainFunction.hookPoint.y,0,50);//z这样都没有也能防卡住
+        AutoClick.service.click(MainFunction.hookPoint.x, MainFunction.hookPoint.y, 0, 50);//z这样都没有也能防卡住
 
     }
 
@@ -1077,6 +1188,7 @@ public Point[] selectArea() throws InterruptedException {
 //            MainActivity.imageHadle.init();
 //        }
 //    }
+
 
 
 }

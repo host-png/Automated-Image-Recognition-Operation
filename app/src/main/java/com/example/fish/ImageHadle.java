@@ -426,7 +426,7 @@ public class ImageHadle {
         // 1. 4通道RGBA转单通道灰度图
         Imgproc.cvtColor(srcMat, grayMat, Imgproc.COLOR_RGBA2GRAY);
         // 2. 二值化：大于阈值变白，小于变黑
-        Imgproc.threshold(grayMat, binMat, thresh, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(grayMat, binMat, thresh, 100, Imgproc.THRESH_BINARY);
 
         // 注意：
         // binMat 要返回出去给外面用，所以这里不能 release！
@@ -672,7 +672,7 @@ public class ImageHadle {
 
     }
 
-    public static Point cutSelf(Mat mat,Point leftTop,Point rightDown,int thresh){//
+    public static Point cutSelf(Mat mat,Point leftTop,Point rightDown,int thresh){//传入比对图标 扫描区域左上角
 
        // scope*=SetingTheParmer.expendTheSechArea;
         // 1. 计算扫描区域左上角 & 做边界限制（核心修复：防止 x/y 负数）
