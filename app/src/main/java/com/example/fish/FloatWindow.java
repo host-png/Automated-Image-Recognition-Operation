@@ -739,24 +739,30 @@ public Point[] selectArea() throws InterruptedException {
               /*  Bitmap bitmap1 = ImageHadle.binaryzationToBit(bitmap,140);
                 MainActivity.imageHadle.saveBitmap(bitmap1);
                 */
-             /*   Bitmap all = MainActivity.imageHadle.getScreenBitmap();
+    /*            Bitmap all = MainActivity.imageHadle.getScreenBitmap();
                 MainFunction.initSearchTheGreenPosHsv(all);
                 int wid = ImageHadle.width - (2*MainFunction.cGLinepoint.x);
                 //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
-                Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.cGLinepoint.x, MainFunction.cGLinepoint.y, wid ,1);
+                Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(MainFunction.fishStaPoint.x, MainFunction.fishStaPoint.y, wid ,40);
+                MainActivity.imageHadle.saveBitmap(areaBitmap);
+
                 if (areaBitmap == null)
                 {
 
                 }else {
                     Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
                     //定义绿色范围
-                    Scalar lowerYellow = new Scalar(80,30,200);
-                    Scalar upperYellow = new Scalar(100,150,255);
+                    Scalar lowerYellow = new Scalar(80,30,240);
+                    Scalar upperYellow = new Scalar(100,255,255);
                     Mat yellowMask = ImageHadle.filterByHSV(mat, lowerYellow, upperYellow);
                     MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(yellowMask));
+                    Scalar lowerGreen = new Scalar(35,70,220);
+                    Scalar upperGreen = new Scalar(75,255,255);
+                    Mat greenMask = ImageHadle.filterByHSV(mat, lowerGreen, upperGreen);
+                    MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
 
-                }*/
-
+                }
+*/
 
 
 

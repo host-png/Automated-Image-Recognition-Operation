@@ -286,7 +286,8 @@ public class  MainFunction {
     // 修正：改成静态代码块初始化
     public static float speep;
     static {
-        speep =  (float)sWToTrsf(771)/2230;//xToTrsf像素/时间   单位像素/ms771/2230
+       // speep =  (float)sWToTrsf(771)/2230;//xToTrsf像素/时间   单位像素/ms771/2230
+        speep =  (float)771/2230;//xToTrsf像素/时间   单位像素/ms771/2230
     }
 
     public static void currMove(int move)//输入移动移动方向进行移动s
@@ -345,9 +346,8 @@ public class  MainFunction {
 
     Mat mat = ImageHadle.bitmapToBGRMat(bitmap);
     //定义绿色范围
-    Scalar lowerGreen = new Scalar(35,60,70);
-    Scalar upperGreen = new Scalar(75,255,255);
-
+        Scalar lowerGreen = new Scalar(35,70,220);
+        Scalar upperGreen = new Scalar(75,255,255);
     Mat greenMask = ImageHadle.filterByHSV(mat, lowerGreen, upperGreen);
       /*  MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
 */
@@ -400,7 +400,7 @@ public class  MainFunction {
 
         Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
         //定义绿色范围
-        Scalar lowerGreen = new Scalar(35,60,70);
+        Scalar lowerGreen = new Scalar(35,70,220);
         Scalar upperGreen = new Scalar(75,255,255);
 
         Mat greenMask = ImageHadle.filterByHSV(mat, lowerGreen, upperGreen);
@@ -475,17 +475,29 @@ public class  MainFunction {
 
 
 
+    static boolean yellowCrent(Mat mat, int x){
+        if (ImageHadle.getPointColorFromMat(mat, x+1, 1) == 0xFFFFFFFF){//前面
+            return true;
+        }else if(ImageHadle.getPointColorFromMat(mat, x, 0) == 0xFFFFFFFF){//上面
+            return true;
+        }
+        else if(ImageHadle.getPointColorFromMat(mat, x, 2) == 0xFFFFFFFF){//下面
+            return true;
+        }
+        return  false;
+    }
+
     public static int newCursorPoint() {
 
         int wid = ImageHadle.width - (2*cGLinepoint.x);
         //xToTrsf(815), yToTrsf(86), xToTrsf(785), yToTrsf(5)
-        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y, wid ,1);
+        Bitmap areaBitmap = MainActivity.imageHadle.getAreaBitmap(cGLinepoint.x, cGLinepoint.y-1, wid ,3);
         if (areaBitmap == null) return -1;
 
         Mat mat = ImageHadle.bitmapToBGRMat(areaBitmap);
-        //定义绿色范围
-        Scalar lowerYellow = new Scalar(80,30,200);
-        Scalar upperYellow = new Scalar(100,150,255);
+        //定义黄色范围
+        Scalar lowerYellow = new Scalar(80,30,240);
+        Scalar upperYellow = new Scalar(100,255,255);
         Mat yellowMask = ImageHadle.filterByHSV(mat, lowerYellow, upperYellow);
         //MainActivity.imageHadle.saveBitmap(ImageHadle.matToBitmap(greenMask));
 
@@ -501,7 +513,11 @@ public class  MainFunction {
         }
 
         while (x <= wid-1) {
-            if (ImageHadle.getPointColorFromMat(yellowMask, x, 0) == 0xFFFFFFFF) break;
+            if (ImageHadle.getPointColorFromMat(yellowMask, x, 1) == 0xFFFFFFFF) {
+                if(yellowCrent(yellowMask,x)){
+                    break;
+                }
+            }
             x++;
         }
 

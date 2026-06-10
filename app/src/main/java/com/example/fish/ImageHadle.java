@@ -644,8 +644,8 @@ public class ImageHadle {
 
                     if( matchSimilarity(movemat,mat)>0.6)
                     {
-                        areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
-                                , mat.cols(),mat.rows());
+                       /* areaBmp = Bitmap.createBitmap(allScreen, scanLeft + co,scanTop + ro
+                                , mat.cols(),mat.rows());*/
                      //   MainActivity.imageHadle.saveBitmap(areaBmp);
 
                         Point point = new Point(scanLeft+co,scanTop +ro);
@@ -706,20 +706,20 @@ public class ImageHadle {
 
                      Log.v("xiangsi", String.valueOf(matchSimilarity(movemat,mat)));
 */
-                    b =matchSimilarity(movemat,mat);
+                /*    b =matchSimilarity(movemat,mat);
                     if(k < b)
                     {
                         k= b;
                         Log.v("xiangsi", String.valueOf(k));
 
                     }
-
+*/
                     if( matchSimilarity(movemat,mat)>0.55)
                     {
-                        areaBmp = Bitmap.createBitmap(allScreen, leftTop.x + co,leftTop.y + ro
+                       /* areaBmp = Bitmap.createBitmap(allScreen, leftTop.x + co,leftTop.y + ro
                                 , mat.cols(),mat.rows());
-                      MainActivity.imageHadle.saveBitmap(areaBmp);
-
+                        MainActivity.imageHadle.saveBitmap(areaBmp);
+*/
                         Point point = new Point(leftTop.x + co,leftTop.y + ro);
                         return point;
                     }
