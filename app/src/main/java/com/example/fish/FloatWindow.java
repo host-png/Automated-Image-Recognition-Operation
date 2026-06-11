@@ -855,11 +855,11 @@ public Point[] selectArea() throws InterruptedException {
                                             pointsLTRD[1] = area[1];
                                             sleep(1000);
                                             setTipsText("搜索中()");
-                                            MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],140);
+                                            MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],200);
 
                                             if (MainFunction.hookPoint == null)//小钩子
                                             {
-                                                MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.hook,pointsLTRD[0],pointsLTRD[1],140);
+                                                MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.hook,pointsLTRD[0],pointsLTRD[1],200);
                                             }
                                         if (MainFunction.hookPoint == null)
                                         {
