@@ -743,6 +743,7 @@ public class ImageHadle {
         return null;
 
     }
+
     public static Mat vectorScaleMat(Mat srcMat, int targetW, int targetH) {
         Mat gray = new Mat();
         if(srcMat.channels() > 1){

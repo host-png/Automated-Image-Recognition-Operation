@@ -42,6 +42,7 @@ public class FloatWindow {
     // 全局 Application Context（永远不死，悬浮窗专用）
     private Context appContext;
 
+    public static int fishNum = 0;
 
     public FloatWindow(Context context) {//构造函数
         appContext = context.getApplicationContext();
@@ -821,6 +822,7 @@ public Point[] selectArea() throws InterruptedException {
 
 
                     new Thread(() -> {
+
                         try {
                             if(xmlState) {
                                 setTipsText("首次图标坐标扫描(注意不要乱动屏幕)");
@@ -828,6 +830,7 @@ public Point[] selectArea() throws InterruptedException {
                                 setTipsText("扫描钩子(耐心等待)");
                                 while (MainFunction.hookPoint == null)
                                 {
+
                                     if(SetingTheParmer.stateDeviceModel == 1) {//手机
                                         MainFunction.hookPoint = ImageHadle.uiLineSearch(MainFunction.hook,new Point((int)((0.88125*ImageHadle.width) +10.5),(int)(0.885*ImageHadle.height)),
                                                 57*ImageHadle.height/1080*2,200);
@@ -971,7 +974,7 @@ public Point[] selectArea() throws InterruptedException {
                                                 }
 
                                                 xmlState = false;
-                                                stateWithserch = false;
+                                               stateWithserch = false;
                                                 break;
                                             }
                                         }
@@ -1016,7 +1019,8 @@ public Point[] selectArea() throws InterruptedException {
                                             if (MainFunction.isHook()) {
                                                 MainFunction.weithState = true;
                                                 mainState = 0;
-
+                                                fishNum++;
+                                                setTipsText("已上鱼："+ fishNum);
                                             }
                                         }
                                         break;
