@@ -426,7 +426,7 @@ public class ImageHadle {
         // 1. 4通道RGBA转单通道灰度图
         Imgproc.cvtColor(srcMat, grayMat, Imgproc.COLOR_RGBA2GRAY);
         // 2. 二值化：大于阈值变白，小于变黑
-        Imgproc.threshold(grayMat, binMat, thresh, 100, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(grayMat, binMat, thresh, 255, Imgproc.THRESH_BINARY);
 
         // 注意：
         // binMat 要返回出去给外面用，所以这里不能 release！

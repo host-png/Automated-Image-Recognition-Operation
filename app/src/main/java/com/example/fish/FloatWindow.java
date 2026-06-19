@@ -42,6 +42,7 @@ public class FloatWindow {
     // 全局 Application Context（永远不死，悬浮窗专用）
     private static Context  appContext;
 
+    public static int fishNum = 0;
 
     public FloatWindow(Context context) {//构造函数
         appContext = context.getApplicationContext();
@@ -203,7 +204,7 @@ public class FloatWindow {
 
         // ========== 新增：钓几次自动换饵料 ==========
         android.widget.TextView tvBaitTip = new android.widget.TextView(appContext);
-        tvBaitTip.setText("钓多少次自动更换饵料");
+        tvBaitTip.setText("钓多少次自动买饵料(未写好)");
         tvBaitTip.setTextSize(15);
         layout.addView(tvBaitTip);
 
@@ -925,7 +926,7 @@ public class FloatWindow {
                 }*/
 
 
-           /*         new Thread(() -> {
+                    new Thread(() -> {
                         try {
                             if(xmlState) {
                                 setTipsText("首次图标坐标扫描(注意不要乱动屏幕)");
@@ -960,11 +961,11 @@ public class FloatWindow {
                                             pointsLTRD[1] = area[1];
                                             sleep(1000);
                                             setTipsText("搜索中()");
-                                            MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],140);
+                                            MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.bigHook,pointsLTRD[0],pointsLTRD[1],200);
 
                                             if (MainFunction.hookPoint == null)//小钩子
                                             {
-                                                MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.hook,pointsLTRD[0],pointsLTRD[1],140);
+                                                MainFunction.hookPoint = ImageHadle.cutSelf(MainFunction.hook,pointsLTRD[0],pointsLTRD[1],200);
                                             }
                                         if (MainFunction.hookPoint == null)
                                         {
@@ -1121,7 +1122,8 @@ public class FloatWindow {
                                             if (MainFunction.isHook()) {
                                                 MainFunction.weithState = true;
                                                 mainState = 0;
-
+                                                fishNum++;
+                                                setTipsText("已上鱼："+ fishNum);
                                             }
                                         }
                                         break;
@@ -1132,7 +1134,7 @@ public class FloatWindow {
                             setTipsText("钓鱼线程异常崩溃");
                             Log.e(TAG, "钓鱼线程异常崩溃", e);
                         }
-                    }).start();*/
+                    }).start();
             } else {
                 threadIsRunning1 = false;
                 buttonState = true;
