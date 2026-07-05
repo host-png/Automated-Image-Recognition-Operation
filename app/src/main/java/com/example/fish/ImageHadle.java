@@ -24,6 +24,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Mat;
 
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -360,7 +361,28 @@ public class ImageHadle {
         matARGB.release();
         return bitmap;
     }
+    /**
+     * Mat 裁剪
+     * @param src 原图Mat
+     * @param x 左上角x（列）
+     * @param y 左上角y（行）
+     * @param w 宽度
+     * @param h 高度
+     * @return 裁剪后的Mat（视图，共享原图内存）
+     */
+    public static Mat cropMat(Mat src, int x, int y, int w, int h) {
+        // 边界防越界
+        x = Math.max(0, x);
+        y = Math.max(0, y);
+        w = Math.min(w, src.cols() - x);
+        h = Math.min(h, src.rows() - y);
+        if(w <= 0 || h <= 0) return new Mat();
 
+        Rect roi = new Rect(x, y, w, h);
+        // submat 只创建视图，不复制像素，速度极快
+        Mat roiMat = src.submat(roi);
+        return roiMat;
+    }
 
     /* 输入bit返回bit灰度图
      * 图像二值化
