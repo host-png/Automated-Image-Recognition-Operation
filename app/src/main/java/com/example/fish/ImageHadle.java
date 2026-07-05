@@ -24,6 +24,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.Mat;
 
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
@@ -70,7 +71,7 @@ public class ImageHadle {
 
 
         if (mImageReader == null) {// 创建图像接收器
-            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1);
+            mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2);
         }
 
         ScreenRecordService.mMediaProjection.createVirtualDisplay( // 创建虚拟屏幕（画面开始流入，但你不读就不消耗性能）
@@ -89,31 +90,34 @@ public class ImageHadle {
                 return null;
             }
 
-            Image image = null;
+            Image targetImage = null;
+            // 循环丢弃旧帧，只保留最后最新一帧，不全部清空
+            Image temp;
+            while ((temp = mImageReader.acquireLatestImage()) != null) {
+                if (targetImage != null) {
+                    targetImage.close();
+                }
+                targetImage = temp;
+            }
+
+            // 循环结束 targetImage 就是当前最新帧
+            if (targetImage == null) {
+                return null;
+            }
+
             Bitmap bitmap = null;
             try {
-                // 串行取帧，不丢帧、不乱缓冲区状态
-                image = mImageReader.acquireNextImage();
-                if (image == null) {
-                    return null;
-                }
-                bitmap = imageToBitmap(image);
-            } catch (IllegalStateException e) {
-                // 捕获缓冲区锁定/重复关闭异常
-                Log.w("ImageHadle", "缓冲区状态异常，跳过当前帧");
-                return null;
+                bitmap = imageToBitmap(targetImage);
             } catch (Exception e) {
                 Log.e("ImageHadle", "截图转换异常", e);
                 return null;
             } finally {
-                // 无论正常/异常，Image 必定关闭，杜绝泄漏
-                if (image != null) {
-                    image.close();
-                }
+                targetImage.close();
             }
             return bitmap;
         }
     }
+
 
     // 图片转Bitmap（固定工具方法）
     private Bitmap imageToBitmap(Image image) {
@@ -329,6 +333,8 @@ public class ImageHadle {
     }
 
 
+
+
     //opencv下面是
     // Bitmap转Mat
     public static Mat bitmapToMat(Bitmap bitmap) {
@@ -360,7 +366,28 @@ public class ImageHadle {
         matARGB.release();
         return bitmap;
     }
+    /**
+     * Mat 裁剪
+     * @param src 原图Mat
+     * @param x 左上角x（列）
+     * @param y 左上角y（行）
+     * @param w 宽度
+     * @param h 高度
+     * @return 裁剪后的Mat（视图，共享原图内存）
+     */
+    public static Mat cropMat(Mat src, int x, int y, int w, int h) {
+        // 边界防越界
+        x = Math.max(0, x);
+        y = Math.max(0, y);
+        w = Math.min(w, src.cols() - x);
+        h = Math.min(h, src.rows() - y);
+        if(w <= 0 || h <= 0) return new Mat();
 
+        Rect roi = new Rect(x, y, w, h);
+        // submat 只创建视图，不复制像素，速度极快
+        Mat roiMat = src.submat(roi);
+        return roiMat;
+    }
 
     /* 输入bit返回bit灰度图
      * 图像二值化
